@@ -1,91 +1,138 @@
 ---
 // src/components/sections/Testimonials.astro
-// Fetches live testimonials from Supabase `testimonials` table — managed via admin panel.
+// REDESIGN: "Real World, Real Results"
+// Video/image cards in infinite right-to-left carousel loop
+// All content + colours managed from admin (site_content page=home section=testimonials + testimonials table)
 import { supabaseAdmin } from '@/lib/supabase';
 
 interface Testimonial {
-  id: string;
-  client_name: string;
-  brand_name: string | null;
-  designation: string | null;
-  quote: string;
-  photo_url: string | null;
-  rating: number;
-  service_type: string | null;
+  id: string; client_name: string; brand_name: string | null;
+  designation: string | null; city: string | null;
+  quote: string; photo_url: string | null; video_url: string | null;
+  rating: number; service_type: string | null;
+}
+interface TestimonialsCfg {
+  section_bg?: string; track_bg?: string; card_bg?: string; card_text?: string;
+  heading?: string; subheading?: string; label?: string;
+  heading_color?: string; subheading_color?: string;
+  carousel_speed?: string;
 }
 
 let testimonials: Testimonial[] = [];
+let cfg: TestimonialsCfg = {};
+
 try {
-  const { data } = await supabaseAdmin
-    .from('testimonials')
-    .select('id, client_name, brand_name, designation, quote, photo_url, rating, service_type')
-    .eq('is_active', true)
-    .order('sort_order', { ascending: true });
+  const { data } = await supabaseAdmin.from('testimonials')
+    .select('id,client_name,brand_name,designation,city,quote,photo_url,video_url,rating,service_type')
+    .eq('is_active', true).order('sort_order', { ascending: true });
   if (data) testimonials = data as Testimonial[];
 } catch {}
 
-// Fallback defaults
+try {
+  const { data } = await supabaseAdmin.from('site_content').select('content')
+    .eq('page','home').eq('section','testimonials').single();
+  if (data?.content) cfg = data.content as TestimonialsCfg;
+} catch {}
+
 if (!testimonials.length) {
   testimonials = [
-    { id: '1', client_name: 'Aryan Kapoor',  brand_name: 'UrbanFit Apparel · Mumbai',   designation: 'Founder', quote: 'Mashurban rebuilt our website and ran our Meta ads for 45 days. We tripled our online leads. I wish we had found them two years earlier.', photo_url: null, rating: 5, service_type: 'Website + Meta Ads' },
-    { id: '2', client_name: 'Priya Sharma',  brand_name: 'Chai Republic · Delhi',       designation: 'Co-Founder', quote: 'The merch they designed for us sold out in 6 days. The brand kit they made is something we will use for the next decade.',             photo_url: null, rating: 5, service_type: 'Merch + Branding' },
-    { id: '3', client_name: 'Rohan Verma',   brand_name: 'Voltex EV · Bengaluru',       designation: 'CEO', quote: 'Our Google Ads ROAS went from 1.2× to 4.8× in 60 days. These guys actually understand performance marketing.',                              photo_url: null, rating: 5, service_type: 'Google Ads' },
+    { id:'1', client_name:'Aryan Kapoor',  brand_name:'UrbanFit Apparel', city:'Mumbai',    designation:'Founder',    quote:'Mashurban rebuilt our website and ran our Meta ads for 45 days. We tripled our online leads.',               photo_url:null, video_url:null, rating:5, service_type:'Website + Meta Ads' },
+    { id:'2', client_name:'Priya Sharma',  brand_name:'Chai Republic',    city:'Delhi',     designation:'Co-Founder', quote:'The merch they designed for us sold out in 6 days. The brand kit they made is something we will use for a decade.', photo_url:null, video_url:null, rating:5, service_type:'Merch + Branding' },
+    { id:'3', client_name:'Rohan Verma',   brand_name:'Voltex EV',        city:'Bengaluru', designation:'CEO',        quote:'Our Google Ads ROAS went from 1.2× to 4.8× in 60 days. These guys actually understand performance marketing.',   photo_url:null, video_url:null, rating:5, service_type:'Google Ads' },
+    { id:'4', client_name:'Neha Joshi',    brand_name:'Glow Studio',      city:'Pune',      designation:'Director',   quote:'Reels they scripted hit 2M views organically. We went from 800 to 40k followers in under 3 months.',             photo_url:null, video_url:null, rating:5, service_type:'Content Creation' },
+    { id:'5', client_name:'Karan Mehta',   brand_name:'SwiftKart',        city:'Ahmedabad', designation:'Founder',    quote:'Complete brand identity done in 2 weeks. Investors noticed the difference immediately at our pitch.',             photo_url:null, video_url:null, rating:5, service_type:'Brand Identity' },
   ];
 }
 
-function initials(name: string) {
-  return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-}
+const sectionBg   = cfg.section_bg      ?? '#0A0A0A';
+const cardBg      = cfg.card_bg         ?? '#141414';
+const cardText    = cfg.card_text       ?? '#F5F5F0';
+const heading     = cfg.heading         ?? 'Real World, Real Results';
+const subheading  = cfg.subheading      ?? 'Founders, CEOs, and creators who grew with Mashurban.';
+const label       = cfg.label          ?? '05 — What Clients Say';
+const hColor      = cfg.heading_color   ?? '#F5F5F0';
+const sColor      = cfg.subheading_color ?? '#666666';
+const speed       = cfg.carousel_speed  ?? '35';
+
+// Duplicate cards for seamless infinite loop
+const doubled = [...testimonials, ...testimonials];
+
+function stars(n: number) { return '★'.repeat(Math.min(5, Math.max(0, n))); }
+function initials(name: string) { return name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase(); }
 ---
 
-<section id="testimonials" class="bg-white py-24 px-6 md:px-12">
-  <div class="max-w-7xl mx-auto">
-    <div class="section-label reveal">05 — What clients say</div>
+<section id="testimonials" style={`background:${sectionBg};padding:6rem 0;overflow:hidden;`}>
 
-    <h2 class="font-heading font-bold text-[clamp(36px,6vw,72px)] leading-[0.95] text-[#1A1A1A] mb-16 reveal">
-      Real words.<br/>Real results.
-    </h2>
+  <!-- Centred heading -->
+  <div style="text-align:center;margin-bottom:3.5rem;padding:0 1.5rem;">
+    <p style="font-size:.65rem;letter-spacing:.28em;text-transform:uppercase;color:#FF3B00;font-family:Inter,sans-serif;margin-bottom:1rem;">{label}</p>
+    <h2 style={`font-family:'Space Grotesk',sans-serif;font-weight:900;font-size:clamp(1.75rem,5vw,3.5rem);color:${hColor};letter-spacing:-.03em;line-height:1;margin:0 0 1rem;white-space:nowrap;`}>{heading}</h2>
+    <p style={`font-size:clamp(.8rem,1.2vw,1rem);color:${sColor};font-family:Inter,sans-serif;margin:0;`}>{subheading}</p>
+  </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 reveal">
-      {testimonials.map(t => (
-        <div class="bg-[#F7F5F2] border border-[#E5E0D8] rounded-2xl p-8 flex flex-col hover:shadow-lg hover:border-[#FF3B00] transition-all duration-300">
-          <!-- Stars -->
-          <div class="flex gap-1 mb-6">
-            {Array.from({ length: t.rating }).map(() => (
-              <span class="text-[#FF3B00] text-sm">★</span>
-            ))}
-          </div>
+  <!-- Infinite carousel: right → left -->
+  <div style="position:relative;overflow:hidden;width:100%;">
 
-          <!-- Quote -->
-          <blockquote class="text-base text-[#1A1A1A] leading-[1.8] mb-8 flex-1 font-light">
-            "{t.quote}"
-          </blockquote>
+    <!-- Fade edges -->
+    <div style={`position:absolute;top:0;left:0;bottom:0;width:120px;z-index:2;pointer-events:none;background:linear-gradient(to right,${sectionBg},transparent);`}></div>
+    <div style={`position:absolute;top:0;right:0;bottom:0;width:120px;z-index:2;pointer-events:none;background:linear-gradient(to left,${sectionBg},transparent);`}></div>
 
-          <!-- Service tag -->
-          {t.service_type && (
-            <div class="mb-5">
-              <span class="inline-block text-[10px] tracking-[0.16em] uppercase bg-[#FF3B00]/10 text-[#FF3B00] px-3 py-1 rounded-full font-bold">
-                {t.service_type}
-              </span>
+    <!-- Track -->
+    <div class="t-track" style={`display:flex;gap:1.25rem;width:max-content;animation:trackSlide ${speed}s linear infinite;`}>
+      {doubled.map((t, i) => (
+        <div class="t-card"
+          style={`flex-shrink:0;width:320px;background:${cardBg};color:${cardText};border-radius:20px;padding:2rem;border:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;gap:1rem;position:relative;overflow:hidden;transition:border-color .3s;`}
+          key={`${t.id}-${i}`}
+        >
+          <!-- Video or photo -->
+          {t.video_url ? (
+            <div style="border-radius:12px;overflow:hidden;aspect-ratio:9/16;max-height:200px;background:#000;">
+              <video src={t.video_url} style="width:100%;height:100%;object-fit:cover;" muted loop playsinline preload="none"/>
+              <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+                <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,59,0,.85);display:flex;align-items:center;justify-content:center;">
+                  <svg width="16" height="16" viewBox="0 0 16 16"><polygon points="4,2 14,8 4,14" fill="#fff"/></svg>
+                </div>
+              </div>
+            </div>
+          ) : t.photo_url ? (
+            <div style="border-radius:12px;overflow:hidden;height:180px;background:#222;">
+              <img src={t.photo_url} alt={t.client_name} style="width:100%;height:100%;object-fit:cover;"/>
+            </div>
+          ) : (
+            <div style="height:180px;border-radius:12px;background:linear-gradient(135deg,#1e1e1e,#2a2a2a);display:flex;align-items:center;justify-content:center;">
+              <div style="width:64px;height:64px;border-radius:50%;background:#FF3B00;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.25rem;color:#fff;">{initials(t.client_name)}</div>
             </div>
           )}
 
+          <!-- Stars -->
+          <div style="color:#FF3B00;font-size:.875rem;letter-spacing:.1em;">{stars(t.rating)}</div>
+
+          <!-- Quote -->
+          <blockquote style={`font-size:.875rem;line-height:1.8;color:${cardText};opacity:.85;font-family:Inter,sans-serif;margin:0;font-style:italic;flex:1;`}>"{t.quote}"</blockquote>
+
+          <!-- Service tag -->
+          {t.service_type && (
+            <span style="display:inline-block;font-size:.6rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;background:rgba(255,59,0,.12);color:#FF3B00;padding:.3rem .75rem;border-radius:999px;">{t.service_type}</span>
+          )}
+
           <!-- Author -->
-          <div class="flex items-center gap-3 border-t border-[#E5E0D8] pt-5">
-            {t.photo_url ? (
-              <img src={t.photo_url} alt={t.client_name} class="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-            ) : (
-              <div class="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center font-heading font-bold text-sm text-white flex-shrink-0">
-                {initials(t.client_name)}
-              </div>
-            )}
-            <div>
-              <div class="text-sm font-bold text-[#1A1A1A]">{t.client_name}</div>
-              <div class="text-xs text-[#888] mt-0.5">{t.brand_name}</div>
-            </div>
+          <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:.875rem;display:flex;flex-direction:column;gap:.2rem;">
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.875rem;">{t.client_name}</div>
+            <div style="font-size:.75rem;opacity:.5;font-family:Inter,sans-serif;">{t.designation}{t.brand_name ? ` · ${t.brand_name}` : ''}</div>
+            {t.city && <div style="font-size:.7rem;opacity:.4;font-family:Inter,sans-serif;letter-spacing:.06em;">{t.city}</div>}
           </div>
         </div>
       ))}
     </div>
   </div>
 </section>
+
+<style>
+  @keyframes trackSlide {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+  .t-track { will-change: transform; }
+  .t-track:hover { animation-play-state: paused; }
+  .t-card:hover { border-color: rgba(255,59,0,0.4) !important; }
+</style>

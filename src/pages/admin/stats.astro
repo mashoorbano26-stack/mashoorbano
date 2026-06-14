@@ -1,0 +1,159 @@
+---
+// src/pages/admin/stats.astro
+// Controls the orange ticker bar + stats numbers
+export const prerender = false;
+import { makeServerClient, supabaseAdmin } from '@/lib/supabase';
+const supabase = makeServerClient(Astro.cookies);
+const { data: { session } } = await supabase.auth.getSession();
+if (!session) return Astro.redirect('/admin/login');
+
+let saved = false; let errMsg = '';
+
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  const g = (k: string, d = '') => f.get(k)?.toString() ?? d;
+  const count = parseInt(g('stat_count', '0'));
+  const stats = Array.from({ length: count }, (_, i) => ({
+    value: g(`stat_val_${i}`), label: g(`stat_label_${i}`),
+  })).filter(s => s.value);
+  const content = {
+    marquee_text:      g('marquee_text', '25+ Brands Built · ₹50L+ Ad Spend · 3× ROAS · 8 Cities'),
+    bar_bg:            g('bar_bg', '#FF3B00'),
+    bar_text_color:    g('bar_text_color', '#FFFFFF'),
+    bar_speed:         g('bar_speed', '30'),
+    stats_bg:          g('stats_bg', '#0A0A0A'),
+    stats_text_color:  g('stats_text_color', '#F5F5F0'),
+    stats_accent:      g('stats_accent', '#FF3B00'),
+    stats,
+  };
+  const { error: e } = await supabaseAdmin.from('site_content').upsert(
+    { page:'home', section:'stats', content, updated_at: new Date().toISOString() },
+    { onConflict:'page,section' });
+  saved = !e; errMsg = e?.message ?? '';
+}
+
+const { data } = await supabaseAdmin.from('site_content').select('content').eq('page','home').eq('section','stats').single();
+const cfg = (data?.content as any) ?? {};
+const v = (k: string, d: string) => cfg[k] ?? d;
+const statItems: any[] = cfg.stats ?? [
+  { value: '25+', label: 'Brands Built' },
+  { value: '₹50L+', label: 'Ad Spend Managed' },
+  { value: '3×', label: 'Average ROAS' },
+  { value: '8', label: 'Cities Served' },
+];
+---
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Stats & Ticker — Mashurban Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:#F7F5F2;color:#1A1A1A;font-family:Inter,sans-serif;min-height:100vh;display:flex}
+aside{width:220px;min-height:100vh;background:#fff;border-right:1px solid #E5E0D8;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
+.logo{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;padding:1.25rem 1rem;border-bottom:1px solid #E5E0D8}.logo span{color:#FF3B00}
+nav a{display:block;padding:.45rem 1rem;color:#888;font-size:.8125rem;text-decoration:none;border-left:2px solid transparent}
+nav a:hover{color:#1A1A1A;background:#F7F5F2}nav a.active{color:#FF3B00;border-left-color:#FF3B00;background:#fff5f3}
+.sf{padding:.75rem 1rem;border-top:1px solid #E5E0D8;margin-top:auto}.sf a{font-size:.75rem;color:#888;text-decoration:none}
+main{flex:1;padding:2rem;max-width:900px}
+h1{font-family:'Space Grotesk',sans-serif;font-size:1.375rem;font-weight:700;margin-bottom:.25rem}
+.sub{color:#888;font-size:.8125rem;margin-bottom:1.5rem}
+.card{background:#fff;border:1px solid #E5E0D8;border-radius:16px;padding:1.75rem;margin-bottom:1.25rem}
+.card-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.9375rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:.5rem}
+.card-title::before{content:'';width:3px;height:1rem;background:#FF3B00;border-radius:2px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
+.grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.75rem}
+.field{display:flex;flex-direction:column;gap:.375rem;margin-bottom:.75rem}
+label{font-size:.7rem;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.06em}
+input,textarea{width:100%;background:#F7F5F2;border:1.5px solid #E5E0D8;border-radius:10px;padding:.625rem .875rem;color:#1A1A1A;font-size:.875rem;font-family:inherit;outline:none;transition:border-color .2s}
+input[type=color]{height:44px;padding:.3rem .5rem;cursor:pointer}
+input[type=range]{flex:1;accent-color:#FF3B00}input:focus{border-color:#FF3B00}
+.range-row{display:flex;align-items:center;gap:.6rem}
+.range-val{font-size:.8rem;font-weight:700;color:#FF3B00;min-width:2.5rem;text-align:right}
+.stat-row{display:grid;grid-template-columns:1fr 1fr auto;gap:.75rem;align-items:end;background:#F7F5F2;border-radius:10px;padding:.75rem;margin-bottom:.5rem}
+.btn-save{padding:.875rem 2.5rem;background:#FF3B00;color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.9375rem;border:none;border-radius:12px;cursor:pointer}
+.btn-add{padding:.6rem 1.25rem;background:#fff;border:1.5px dashed #FF3B00;color:#FF3B00;border-radius:10px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.8125rem;cursor:pointer;width:100%;margin-top:.5rem}
+.btn-del{padding:.4rem .75rem;background:#fff;border:1px solid #E5E0D8;color:#ef4444;border-radius:8px;font-size:.75rem;cursor:pointer}
+.toast{padding:.875rem 1.25rem;border-radius:12px;margin-bottom:1.5rem;font-size:.875rem;font-weight:500}
+.toast.ok{background:#f0fdf4;border:1px solid #86efac;color:#166534}
+.toast.err{background:#fef2f2;border:1px solid #fca5a5;color:#991b1b}
+.hint{font-size:.7rem;color:#aaa;margin-top:.2rem;line-height:1.5}
+</style>
+</head><body>
+<aside>
+  <div class="logo">Mash<span>urban</span></div>
+  <nav>
+    <a href="/admin">Dashboard</a><a href="/admin/header">Header</a>
+    <a href="/admin/hero">Hero</a><a href="/admin/stats" class="active">Ticker & Stats</a>
+    <a href="/admin/story">Story</a><a href="/admin/services">Services</a>
+    <a href="/admin/packages">Packages</a><a href="/admin/portfolio">Portfolio</a>
+    <a href="/admin/testimonials">Testimonials</a><a href="/admin/orders">Orders</a>
+    <a href="/admin/leads">Leads</a><a href="/admin/blog">Blog</a>
+    <a href="/admin/seo">SEO</a><a href="/admin/media">Media</a>
+    <a href="/admin/settings">Settings</a>
+  </nav>
+  <div class="sf"><a href="/" target="_blank">← View site</a></div>
+</aside>
+<main>
+  <h1>Ticker Bar & Stats</h1>
+  <p class="sub">The orange scrolling strip directly below the hero + the stat numbers below it</p>
+  {saved && <div class="toast ok">✓ Saved! Refresh the homepage to see changes.</div>}
+  {!saved && errMsg && <div class="toast err">⚠ {errMsg}</div>}
+  <form method="POST">
+    <!-- Ticker bar -->
+    <div class="card">
+      <div class="card-title">Orange Ticker Bar</div>
+      <div class="field">
+        <label>Scrolling Text</label>
+        <input type="text" name="marquee_text" value={v('marquee_text','25+ Brands Built · ₹50L+ in Ad Spend Managed · Clients Across 8 Cities · Average 3× ROAS')}/>
+        <span class="hint">Use · as separator. Text repeats automatically in a seamless loop.</span>
+      </div>
+      <div class="grid4">
+        <div class="field"><label>Bar Background</label><input type="color" name="bar_bg" value={v('bar_bg','#FF3B00')}/></div>
+        <div class="field"><label>Text Colour</label><input type="color" name="bar_text_color" value={v('bar_text_color','#FFFFFF')}/></div>
+        <div class="field" style="grid-column:span 2">
+          <label>Scroll Speed (seconds)</label>
+          <div class="range-row"><input type="range" name="bar_speed" min="8" max="60" step="2" value={v('bar_speed','30')} id="spd"/><span class="range-val" id="spdv">{v('bar_speed','30')}s</span></div>
+          <span class="hint">Lower = faster. 30s is default.</span>
+        </div>
+      </div>
+    </div>
+    <!-- Stats -->
+    <div class="card">
+      <div class="card-title">Stats Grid (below ticker)</div>
+      <div class="grid3" style="margin-bottom:1rem">
+        <div class="field"><label>Stats Section BG</label><input type="color" name="stats_bg" value={v('stats_bg','#0A0A0A')}/></div>
+        <div class="field"><label>Stats Text</label><input type="color" name="stats_text_color" value={v('stats_text_color','#F5F5F0')}/></div>
+        <div class="field"><label>Accent (top border)</label><input type="color" name="stats_accent" value={v('stats_accent','#FF3B00')}/></div>
+      </div>
+      <div id="statList">
+        {statItems.map((s: any, i: number) => (
+          <div class="stat-row">
+            <div class="field" style="margin:0"><label>Number</label><input type="text" name={`stat_val_${i}`} value={s.value} placeholder="25+"/></div>
+            <div class="field" style="margin:0"><label>Label</label><input type="text" name={`stat_label_${i}`} value={s.label} placeholder="Brands Built"/></div>
+            <button type="button" class="btn-del" onclick="this.closest('.stat-row').remove()">✕</button>
+          </div>
+        ))}
+      </div>
+      <input type="hidden" name="stat_count" id="statCount" value={statItems.length}/>
+      <button type="button" class="btn-add" id="addStat">+ Add Stat</button>
+    </div>
+    <button type="submit" class="btn-save">Save →</button>
+  </form>
+</main>
+<script>
+  const r = document.getElementById('spd') as HTMLInputElement;
+  const o = document.getElementById('spdv');
+  r?.addEventListener('input', () => { if(o) o.textContent = r.value + 's'; });
+  const list = document.getElementById('statList');
+  const cnt = document.getElementById('statCount') as HTMLInputElement;
+  let n = list?.querySelectorAll('.stat-row').length ?? 0;
+  document.getElementById('addStat')?.addEventListener('click', () => {
+    const i = n++;
+    const d = document.createElement('div');
+    d.className = 'stat-row';
+    d.innerHTML = `<div class="field" style="margin:0"><label>Number</label><input type="text" name="stat_val_${i}" placeholder="10+"/></div><div class="field" style="margin:0"><label>Label</label><input type="text" name="stat_label_${i}" placeholder="New Stat"/></div><button type="button" class="btn-del" onclick="this.closest('.stat-row').remove()">✕</button>`;
+    list?.appendChild(d); if(cnt) cnt.value = String(n);
+  });
+</script>
+</body></html>

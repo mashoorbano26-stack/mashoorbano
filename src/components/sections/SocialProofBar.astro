@@ -1,16 +1,21 @@
 ---
 // src/components/sections/SocialProofBar.astro
-// Fetches stats + marquee text from Supabase site_content (page=home, section=stats)
-// Falls back to defaults if DB is unavailable
+// Orange background ticker bar with white scrolling text
+// Text and stats managed from admin panel (site_content page=home section=stats)
 import { supabaseAdmin } from '@/lib/supabase';
 
-interface Stat { num: string; label: string; }
 interface StatsContent {
-  stats?: Array<{ value: string; label: string }>;
   marquee_text?: string;
+  stats?: Array<{ value: string; label: string }>;
+  bar_bg?: string;
+  bar_text_color?: string;
+  stats_bg?: string;
+  stats_text_color?: string;
+  stats_accent?: string;
+  bar_speed?: string;
 }
 
-let statsContent: StatsContent = {};
+let cfg: StatsContent = {};
 try {
   const { data } = await supabaseAdmin
     .from('site_content')
@@ -18,43 +23,90 @@ try {
     .eq('page', 'home')
     .eq('section', 'stats')
     .single();
-  if (data?.content) statsContent = data.content as StatsContent;
+  if (data?.content) cfg = data.content as StatsContent;
 } catch {}
 
-const stats: Stat[] = statsContent.stats?.map(s => ({ num: s.value, label: s.label })) ?? [
-  { num: '25+',   label: 'Brands Built' },
+const marqueeText = cfg.marquee_text
+  ?? '25+ Brands Built · ₹50L+ in Ad Spend Managed · Clients Across 8 Cities · Average 3× ROAS · Websites · Merch · Content · Meta Ads · Google Ads';
+
+const stats = cfg.stats?.map(s => ({ num: s.value, label: s.label })) ?? [
+  { num: '25+',  label: 'Brands Built' },
   { num: '₹50L+', label: 'Ad Spend Managed' },
-  { num: '3×',    label: 'Average ROAS' },
-  { num: '8',     label: 'Cities Served' },
+  { num: '3×',   label: 'Average ROAS' },
+  { num: '8',    label: 'Cities Served' },
 ];
 
-const marqueeText = statsContent.marquee_text
-  ?? '25+ Brands Built · ₹50L+ in Ad Spend Managed · Clients Across 8 Cities · Average 3× ROAS';
+// Admin-controlled colours — defaults to classic orange bar + dark stats
+const barBg         = cfg.bar_bg          ?? '#FF3B00';
+const barTextColor  = cfg.bar_text_color  ?? '#FFFFFF';
+const statsBg       = cfg.stats_bg        ?? '#0A0A0A';
+const statsText     = cfg.stats_text_color ?? '#F5F5F0';
+const statsAccent   = cfg.stats_accent     ?? '#FF3B00';
+const speed         = cfg.bar_speed        ?? '30';
 
-// Duplicate marquee items for seamless loop
-const marqueeItems = [marqueeText, marqueeText];
+// Repeat text enough times for seamless infinite scroll
+const repeated = Array(6).fill(marqueeText).join(`  ·  `);
 ---
 
-<!-- Marquee strip -->
-<div class="bg-[#FF3B00] overflow-hidden py-3.5">
-  <div class="flex whitespace-nowrap animate-marquee">
-    {marqueeItems.map((text) => (
-      <span class="inline-flex items-center gap-10 px-10 font-heading font-bold text-base tracking-wider text-white uppercase">
-        {text}
-        <span class="w-1.5 h-1.5 rounded-full bg-white/50 flex-shrink-0" aria-hidden="true"></span>
+<!-- ── ORANGE TICKER BAR ── -->
+<div
+  style={`background:${barBg};overflow:hidden;padding:.75rem 0;position:relative;`}
+  aria-label="Marquee ticker"
+>
+  <div
+    class="ticker-track"
+    style={`display:inline-flex;white-space:nowrap;animation:tickerScroll ${speed}s linear infinite;will-change:transform;`}
+  >
+    <!-- Two copies so the loop is seamless -->
+    {[0, 1].map(() => (
+      <span
+        style={`display:inline-flex;align-items:center;gap:2.5rem;padding:0 2.5rem;
+          font-family:'Space Grotesk',sans-serif;font-weight:700;
+          font-size:clamp(.7rem,1.1vw,.875rem);
+          letter-spacing:.18em;text-transform:uppercase;
+          color:${barTextColor};`}
+      >
+        {marqueeText}
+        <span style={`display:inline-block;width:6px;height:6px;border-radius:50%;background:${barTextColor};opacity:.5;flex-shrink:0;`} aria-hidden="true"></span>
       </span>
     ))}
   </div>
 </div>
 
-<!-- Stats grid — light background -->
-<section class="bg-white border-b border-[#E5E0D8] py-16 px-6 md:px-12">
-  <div class="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
+<!-- ── STATS GRID ── -->
+<section
+  id="stats"
+  style={`background:${statsBg};border-bottom:1px solid rgba(255,255,255,0.06);
+    padding:4rem 1.5rem;`}
+>
+  <div style="max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:2rem;">
     {stats.map(stat => (
-      <div class="reveal border-t-2 border-[#FF3B00] pt-6">
-        <div class="font-heading font-bold text-5xl text-[#1A1A1A]">{stat.num}</div>
-        <div class="text-xs tracking-[0.14em] uppercase text-[#888] mt-2">{stat.label}</div>
+      <div style={`border-top:2px solid ${statsAccent};padding-top:1.5rem;`}>
+        <div style={`font-family:'Space Grotesk',sans-serif;font-weight:900;
+          font-size:clamp(2rem,4vw,3rem);color:${statsText};line-height:1;margin-bottom:.4rem;`}>
+          {stat.num}
+        </div>
+        <div style={`font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;
+          color:${statsText};opacity:.45;font-family:Inter,sans-serif;`}>
+          {stat.label}
+        </div>
       </div>
     ))}
   </div>
 </section>
+
+<style>
+  @keyframes tickerScroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+  .ticker-track { display: inline-flex; }
+  /* Pause on hover */
+  .ticker-track:hover { animation-play-state: paused; }
+
+  @media (max-width: 640px) {
+    #stats > div {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+  }
+</style>

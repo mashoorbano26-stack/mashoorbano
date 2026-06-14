@@ -1,109 +1,151 @@
 ---
 // src/components/sections/Packages.astro
-// Fetches live packages from Supabase `packages` table — managed via admin panel.
+// Redesigned: centred heading, contrast hover colour change on packages, all from admin
 import { supabaseAdmin } from '@/lib/supabase';
 
 interface Package {
-  id: string;
-  name: string;
-  tagline: string | null;
-  price_inr: number;
-  price_usd: number | null;
-  features: string[];
-  is_popular: boolean;
+  id: string; name: string; tagline: string | null;
+  price_inr: number; price_usd: number | null;
+  features: string[]; is_popular: boolean;
+  card_bg?: string; card_text?: string;
+  card_hover_bg?: string; card_hover_text?: string;
+}
+interface PkgConfig {
+  section_bg?: string; heading?: string; subheading?: string; label?: string;
+  heading_color?: string; subheading_color?: string;
+  default_card_bg?: string; default_card_text?: string;
+  default_card_hover_bg?: string; default_card_hover_text?: string;
+  popular_card_bg?: string;
 }
 
 let packages: Package[] = [];
+let cfg: PkgConfig = {};
+
 try {
-  const { data } = await supabaseAdmin
-    .from('packages')
-    .select('id, name, tagline, price_inr, price_usd, features, is_popular')
-    .eq('is_active', true)
-    .order('sort_order', { ascending: true });
+  const { data } = await supabaseAdmin.from('packages')
+    .select('id,name,tagline,price_inr,price_usd,features,is_popular,card_bg,card_text,card_hover_bg,card_hover_text')
+    .eq('is_active', true).order('sort_order', { ascending: true });
   if (data) packages = data as Package[];
 } catch {}
 
-// Fallback defaults
+try {
+  const { data } = await supabaseAdmin.from('site_content').select('content')
+    .eq('page','home').eq('section','packages').single();
+  if (data?.content) cfg = data.content as PkgConfig;
+} catch {}
+
 if (!packages.length) {
   packages = [
-    { id: 'starter',   name: 'Starter',    tagline: 'Perfect for new brands',          price_inr: 29999,  price_usd: 360,  features: ['5-page website','Mobile responsive','Basic SEO setup','Contact form','Google Analytics','1 month support'],                                                  is_popular: false },
-    { id: 'growth',    name: 'Growth',     tagline: 'Most chosen by growing brands',    price_inr: 79999,  price_usd: 960,  features: ['10-page website','Social media setup','Meta ads (1 month)','4 content reels','Advanced SEO','WhatsApp integration','3 months support'],                  is_popular: true  },
-    { id: 'fullstack', name: 'Full Stack', tagline: 'Complete digital presence',        price_inr: 149999, price_usd: 1800, features: ['Custom website','Brand identity kit','Merchandise design','Meta + Google ads 3mo','8 monthly reels','Dedicated account mgr','6 months support'], is_popular: false },
+    { id:'starter',   name:'Starter',    tagline:'Perfect for new brands',       price_inr:29999,  price_usd:360,  features:['5-page website','Mobile responsive','Basic SEO','Contact form','Google Analytics','1 month support'],                          is_popular:false },
+    { id:'growth',    name:'Growth',     tagline:'Most chosen by growing brands', price_inr:79999,  price_usd:960,  features:['10-page website','Social media setup','Meta ads 1 month','4 content reels','Advanced SEO','WhatsApp integration','3 months support'], is_popular:true  },
+    { id:'fullstack', name:'Full Stack', tagline:'Complete digital presence',     price_inr:149999, price_usd:1800, features:['Custom website','Brand identity kit','Merch design','Meta + Google ads 3mo','8 monthly reels','Dedicated account mgr','6 months support'], is_popular:false },
   ];
 }
 
-function formatINR(n: number) {
-  return '₹' + n.toLocaleString('en-IN');
-}
+const sectionBg  = cfg.section_bg          ?? '#F7F5F2';
+const heading    = cfg.heading             ?? 'Simple Pricing';
+const subheading = cfg.subheading          ?? 'No hidden fees. No retainer traps. Pick a package and we get to work.';
+const label      = cfg.label              ?? '04 — Packages';
+const hColor     = cfg.heading_color       ?? '#1A1A1A';
+const sColor     = cfg.subheading_color    ?? '#888888';
+const defCardBg  = cfg.default_card_bg     ?? '#FFFFFF';
+const defCardTxt = cfg.default_card_text   ?? '#1A1A1A';
+const defHoverBg = cfg.default_card_hover_bg   ?? '#1A1A1A';
+const defHoverTxt= cfg.default_card_hover_text ?? '#F5F5F0';
+const popBg      = cfg.popular_card_bg     ?? '#0A0A0A';
+
+function formatINR(n: number) { return '₹' + n.toLocaleString('en-IN'); }
 ---
 
-<section id="packages" class="bg-[#F7F5F2] py-24 px-6 md:px-12">
-  <div class="max-w-7xl mx-auto">
-    <div class="section-label reveal">04 — Packages</div>
+<section id="packages" style={`background:${sectionBg};padding:6rem 1.5rem;`}>
+  <div style="max-width:1100px;margin:0 auto;">
 
-    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-16">
-      <h2 class="font-heading font-bold text-[clamp(40px,7vw,80px)] leading-[0.95] text-[#1A1A1A] reveal">
-        Simple<br/>Pricing.
-      </h2>
-      <p class="text-sm text-[#666] max-w-xs leading-relaxed reveal reveal-delay-1">
-        No hidden fees. No retainer traps. Pick a package, pay, and we get to work.
-      </p>
+    <!-- Centred heading -->
+    <div style="text-align:center;margin-bottom:4rem;">
+      <p style="font-size:.65rem;letter-spacing:.28em;text-transform:uppercase;color:#FF3B00;font-family:Inter,sans-serif;margin-bottom:1rem;">{label}</p>
+      <h2 style={`font-family:'Space Grotesk',sans-serif;font-weight:900;font-size:clamp(2rem,5vw,3.5rem);color:${hColor};letter-spacing:-.03em;line-height:1;margin:0 0 1rem;white-space:nowrap;`}>{heading}</h2>
+      <p style={`font-size:clamp(.8rem,1.2vw,1rem);color:${sColor};font-family:Inter,sans-serif;margin:0;max-width:520px;margin-left:auto;margin-right:auto;line-height:1.7;`}>{subheading}</p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 reveal">
-      {packages.map(pkg => (
-        <div class={`relative flex flex-col rounded-2xl border-2 p-8 transition-all duration-300 hover:shadow-xl ${
-          pkg.is_popular
-            ? 'bg-[#1A1A1A] border-[#1A1A1A] shadow-lg scale-[1.02]'
-            : 'bg-white border-[#E5E0D8] hover:border-[#FF3B00]'
-        }`}>
-          {pkg.is_popular && (
-            <span class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#FF3B00] text-white text-[10px] font-bold tracking-[0.18em] uppercase px-4 py-1 rounded-full whitespace-nowrap">
-              ★ Most Popular
-            </span>
-          )}
+    <!-- Package cards -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:1.25rem;">
+      {packages.map(pkg => {
+        const isPopular = pkg.is_popular;
+        const cardBg    = isPopular ? popBg : (pkg.card_bg ?? defCardBg);
+        const cardTxt   = isPopular ? '#F5F5F0' : (pkg.card_text ?? defCardTxt);
+        const hoverBg   = pkg.card_hover_bg   ?? defHoverBg;
+        const hoverTxt  = pkg.card_hover_text ?? defHoverTxt;
+        return (
+          <div
+            class="pkg-card"
+            data-hover-bg={hoverBg}
+            data-hover-text={hoverTxt}
+            data-default-bg={cardBg}
+            data-default-text={cardTxt}
+            data-popular={isPopular ? '1' : '0'}
+            style={`position:relative;padding:2.5rem 2rem;border-radius:20px;display:flex;flex-direction:column;cursor:default;
+              background:${cardBg};color:${cardTxt};
+              border:1.5px solid ${isPopular ? '#FF3B00' : 'rgba(0,0,0,0.08)'};
+              transition:background .3s,color .3s,border-color .3s,transform .25s,box-shadow .3s;`}>
 
-          <div class={`text-[10px] font-bold tracking-[0.18em] uppercase mb-6 ${pkg.is_popular ? 'text-[#FF3B00]' : 'text-[#AAA]'}`}>
-            {pkg.name}
+            {isPopular && (
+              <span style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:#FF3B00;color:#fff;font-size:.6rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;padding:.3rem 1rem;border-radius:999px;white-space:nowrap;">★ Most Popular</span>
+            )}
+
+            <div style={`font-size:.6rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;margin-bottom:1.5rem;color:${isPopular ? '#FF3B00' : '#AAA'};`}>{pkg.name}</div>
+
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:900;font-size:2.75rem;line-height:1;margin-bottom:.25rem;">{formatINR(pkg.price_inr)}</div>
+            <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;opacity:.55;margin-bottom:2rem;">one-time · {pkg.tagline}</div>
+
+            <ul style="list-style:none;padding:0;margin:0 0 2rem;flex:1;">
+              {pkg.features.map((feat: string) => (
+                <li style="display:flex;gap:.75rem;align-items:flex-start;padding:.7rem 0;border-bottom:1px solid rgba(128,128,128,0.12);font-size:.8125rem;line-height:1.6;font-family:Inter,sans-serif;">
+                  <span style="color:#FF3B00;flex-shrink:0;margin-top:.1rem;">→</span>
+                  {feat}
+                </li>
+              ))}
+            </ul>
+
+            <a href="#contact"
+              style={`display:block;text-align:center;padding:.875rem;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;text-decoration:none;border-radius:10px;transition:all .25s;
+                background:${isPopular ? '#FF3B00' : 'transparent'};
+                color:${isPopular ? '#fff' : 'currentColor'};
+                border:1.5px solid ${isPopular ? '#FF3B00' : 'rgba(128,128,128,0.3)'};`}
+              onmouseover={`this.style.background='#FF3B00';this.style.color='#fff';this.style.borderColor='#FF3B00'`}
+              onmouseout={isPopular ? `this.style.background='#FF3B00';this.style.color='#fff'` : `this.style.background='transparent';this.style.color='';this.style.borderColor='rgba(128,128,128,0.3)'`}>
+              Get Started →
+            </a>
           </div>
-
-          <div class={`font-heading font-bold text-5xl leading-none mb-1 ${pkg.is_popular ? 'text-white' : 'text-[#1A1A1A]'}`}>
-            {formatINR(pkg.price_inr)}
-          </div>
-          <div class={`text-xs tracking-[0.1em] uppercase mb-8 ${pkg.is_popular ? 'text-[#888]' : 'text-[#AAA]'}`}>
-            one-time · {pkg.tagline}
-          </div>
-
-          <ul class="space-y-0 flex-1 mb-8 list-none">
-            {pkg.features.map((f: string) => (
-              <li class={`flex gap-3 items-start py-3 border-b text-sm leading-relaxed ${
-                pkg.is_popular ? 'border-[#2A2A2A] text-[#CCC]' : 'border-[#F0EDE8] text-[#555]'
-              }`}>
-                <span class="mt-0.5 flex-shrink-0 text-[#FF3B00]">→</span>
-                {f}
-              </li>
-            ))}
-          </ul>
-
-          <a
-            href="#contact"
-            class={`w-full py-4 text-center text-xs font-heading font-bold tracking-widest uppercase transition-all block rounded-xl ${
-              pkg.is_popular
-                ? 'bg-[#FF3B00] text-white hover:bg-[#e03200]'
-                : 'bg-[#F7F5F2] text-[#1A1A1A] border border-[#E5E0D8] hover:bg-[#FF3B00] hover:text-white hover:border-[#FF3B00]'
-            }`}
-          >
-            Get Started
-          </a>
-        </div>
-      ))}
+        );
+      })}
     </div>
 
-    <p class="text-center text-sm text-[#888] mt-8 reveal">
+    <p style={`text-align:center;font-size:.8125rem;color:${sColor};margin-top:2rem;font-family:Inter,sans-serif;`}>
       Need something custom?
-      <a href="#contact" class="text-[#1A1A1A] underline underline-offset-4 hover:text-[#FF3B00] transition-colors ml-1">
-        Let's talk →
-      </a>
+      <a href="#contact" style="color:#FF3B00;text-decoration:none;margin-left:.35rem;font-weight:600;">Let's talk →</a>
     </p>
   </div>
 </section>
+
+<script>
+  document.querySelectorAll('.pkg-card').forEach(card => {
+    const el = card as HTMLElement;
+    const hBg   = el.dataset.hoverBg   ?? '#1A1A1A';
+    const hTxt  = el.dataset.hoverText ?? '#F5F5F0';
+    const dBg   = el.dataset.defaultBg ?? '#fff';
+    const dTxt  = el.dataset.defaultText ?? '#1A1A1A';
+    const isPop = el.dataset.popular === '1';
+    if (isPop) return; // popular card keeps its style, no hover swap
+    el.addEventListener('mouseenter', () => {
+      el.style.background = hBg; el.style.color = hTxt;
+      el.style.borderColor = hBg;
+      el.style.transform = 'translateY(-4px)';
+      el.style.boxShadow = '0 20px 60px rgba(0,0,0,0.18)';
+    });
+    el.addEventListener('mouseleave', () => {
+      el.style.background = dBg; el.style.color = dTxt;
+      el.style.borderColor = 'rgba(0,0,0,0.08)';
+      el.style.transform = ''; el.style.boxShadow = '';
+    });
+  });
+</script>
