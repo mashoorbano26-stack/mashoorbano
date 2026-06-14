@@ -1,11 +1,18 @@
+// astro.config.mjs
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import tailwind from '@astrojs/tailwind';
 import sitemap from '@astrojs/sitemap';
+import cloudflare from '@astrojs/cloudflare';
 
 export default defineConfig({
-  site: 'https://mashoorbano.pages.dev',
-  output: 'static',
+  site: 'https://mashurban.com',
+  output: 'server',           // SSR for Cloudflare Pages — all pages server-rendered
+  adapter: cloudflare({
+    mode: 'directory',        // generates _worker.js directory for Pages Functions
+    functionPerRoute: false,  // single worker bundle (free tier compatible)
+    imageService: 'passthrough',
+  }),
   integrations: [
     react(),
     tailwind(),
@@ -14,7 +21,9 @@ export default defineConfig({
         !page.includes('/admin') && !page.includes('/api'),
     }),
   ],
-  image: {
-    service: { entrypoint: 'astro/assets/services/sharp' },
+  vite: {
+    ssr: {
+      external: ['node:crypto', 'node:buffer', 'node:stream'],
+    },
   },
 });

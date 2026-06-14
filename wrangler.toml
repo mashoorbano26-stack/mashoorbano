@@ -1,0 +1,22 @@
+# wrangler.toml — Cloudflare Pages config
+name = "mashurban"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[build]
+command   = "npm run build"
+directory = "dist"
+
+[[redirects]]
+from   = "/admin"
+to     = "/admin/index.html"
+status = 200
+
+[[headers]]
+for = "/*"
+[headers.values]
+X-Frame-Options              = "DENY"
+X-Content-Type-Options       = "nosniff"
+Referrer-Policy              = "strict-origin-when-cross-origin"
+Strict-Transport-Security    = "max-age=31536000; includeSubDomains"
+Permissions-Policy           = "camera=(), microphone=(), geolocation=()"
