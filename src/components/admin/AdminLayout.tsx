@@ -1,134 +1,68 @@
+// src/components/admin/AdminLayout.tsx
+// Fixed: removed server-only supabase import — auth is handled by Astro middleware
+// This is a pure UI layout component, no Supabase needed here
 'use client';
+
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase';
 
 interface Props {
-  page: string;
-  children?: React.ReactNode;
+  children: React.ReactNode;
+  active?: string;
 }
 
-const NAV_ITEMS = [
-  { label: 'Dashboard',    href: '/admin',              icon: '📊' },
-  { label: 'Hero',         href: '/admin/hero',         icon: '⚡' },
-  { label: 'Story',        href: '/admin/story',        icon: '📖' },
-  { label: 'Services',     href: '/admin/services',     icon: '🧩' },
-  { label: 'Packages',     href: '/admin/packages',     icon: '📦' },
-  { label: 'Portfolio',    href: '/admin/portfolio',    icon: '🖼️' },
-  { label: 'Testimonials', href: '/admin/testimonials', icon: '⭐' },
-  { label: 'Orders',       href: '/admin/orders',       icon: '🛒' },
-  { label: 'Leads',        href: '/admin/leads',        icon: '👥' },
-  { label: 'Blog',         href: '/admin/blog',         icon: '📝' },
-  { label: 'SEO',          href: '/admin/seo',          icon: '🔍' },
-  { label: 'Media',        href: '/admin/media',        icon: '📁' },
-  { label: 'Theme',        href: '/admin/theme',        icon: '🎨' },
-  { label: 'Settings',     href: '/admin/settings',     icon: '⚙️' },
-];
+export default function AdminLayout({ children, active = '' }: Props) {
+  const [open, setOpen] = useState(false);
 
-export default function AdminLayout({ page, children }: Props) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [user, setUser] = useState<{ email?: string } | null>(null);
-  const supabase = createClient();
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user ?? null));
-  }, []);
-
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    window.location.href = '/admin/login';
-  }
+  const navLinks = [
+    { href: '/admin',              label: 'Dashboard' },
+    { href: '/admin/header',       label: 'Header' },
+    { href: '/admin/hero',         label: 'Hero' },
+    { href: '/admin/stats',        label: 'Ticker & Stats' },
+    { href: '/admin/story',        label: 'Story' },
+    { href: '/admin/services',     label: 'Services' },
+    { href: '/admin/packages',     label: 'Packages' },
+    { href: '/admin/portfolio',    label: 'Portfolio' },
+    { href: '/admin/testimonials', label: 'Testimonials' },
+    { href: '/admin/orders',       label: 'Orders' },
+    { href: '/admin/leads',        label: 'Leads' },
+    { href: '/admin/blog',         label: 'Blog' },
+    { href: '/admin/seo',          label: 'SEO' },
+    { href: '/admin/media',        label: 'Media' },
+    { href: '/admin/settings',     label: 'Settings' },
+  ];
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] flex font-body">
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#F7F5F2', fontFamily: 'Inter, sans-serif' }}>
       {/* Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 w-60 bg-[#0D0D0D] border-r border-[#1E1E1E] flex flex-col transition-transform duration-300 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 lg:static lg:flex`}
-      >
-        {/* Logo */}
-        <div className="px-6 py-5 border-b border-[#1E1E1E]">
-          <a href="/" className="font-heading font-black text-xl text-white" style={{ letterSpacing: '-0.03em' }}>
-            Mash<span style={{ color: '#FF3B00' }}>urban</span>
-          </a>
-          <p className="text-[10px] text-gray-600 mt-0.5 uppercase tracking-widest">Admin Panel</p>
+      <aside style={{
+        width: 220, minHeight: '100vh', background: '#fff',
+        borderRight: '1px solid #E5E0D8', display: 'flex',
+        flexDirection: 'column', position: 'sticky', top: 0,
+        height: '100vh', overflowY: 'auto', flexShrink: 0,
+      }}>
+        <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '1rem', padding: '1.25rem 1rem', borderBottom: '1px solid #E5E0D8' }}>
+          Mash<span style={{ color: '#FF3B00' }}>urban</span>
         </div>
-
-        {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
-          {NAV_ITEMS.map((item) => {
-            const isActive = page === item.label.toLowerCase() || (page === 'index' && item.href === '/admin');
-            return (
-              <a
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-heading font-bold transition-all duration-200 ${
-                  isActive
-                    ? 'bg-[#FF3B00] text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-[#1A1A1A]'
-                }`}
-              >
-                <span className="text-base leading-none">{item.icon}</span>
-                {item.label}
-              </a>
-            );
-          })}
+        <nav style={{ flex: 1 }}>
+          {navLinks.map(l => (
+            <a key={l.href} href={l.href} style={{
+              display: 'block', padding: '.45rem 1rem',
+              color: active === l.href ? '#FF3B00' : '#888',
+              fontSize: '.8125rem', textDecoration: 'none',
+              borderLeft: active === l.href ? '2px solid #FF3B00' : '2px solid transparent',
+              background: active === l.href ? '#fff5f3' : 'transparent',
+            }}>{l.label}</a>
+          ))}
         </nav>
-
-        {/* User + logout */}
-        <div className="px-4 py-4 border-t border-[#1E1E1E]">
-          {user && (
-            <p className="text-[11px] text-gray-600 mb-3 truncate">{user.email}</p>
-          )}
-          <button
-            onClick={handleLogout}
-            className="w-full px-3 py-2.5 rounded-xl text-sm font-heading font-bold text-gray-500 hover:text-white hover:bg-[#1A1A1A] transition-colors text-left flex items-center gap-2"
-          >
-            🚪 Logout
-          </button>
+        <div style={{ padding: '.75rem 1rem', borderTop: '1px solid #E5E0D8' }}>
+          <a href="/" target="_blank" style={{ fontSize: '.75rem', color: '#888', textDecoration: 'none' }}>← View site</a>
         </div>
       </aside>
 
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/60 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
       {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0 lg:ml-0">
-        {/* Top bar */}
-        <header className="sticky top-0 z-20 bg-[#0A0A0A]/90 backdrop-blur-sm border-b border-[#1E1E1E] flex items-center gap-4 px-6 py-4">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden text-gray-400 hover:text-white transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          <h1 className="font-heading font-bold text-sm text-gray-400 capitalize">
-            {page === 'index' ? 'Dashboard' : page}
-          </h1>
-          <div className="ml-auto flex items-center gap-2">
-            <a
-              href="/"
-              target="_blank"
-              rel="noopener"
-              className="text-xs text-gray-600 hover:text-gray-300 transition-colors font-body flex items-center gap-1"
-            >
-              View site ↗
-            </a>
-          </div>
-        </header>
-
-        {/* Content */}
-        <main className="flex-1 p-6 overflow-y-auto">
-          {children}
-        </main>
-      </div>
+      <main style={{ flex: 1, padding: '2rem', maxWidth: 960 }}>
+        {children}
+      </main>
     </div>
   );
 }

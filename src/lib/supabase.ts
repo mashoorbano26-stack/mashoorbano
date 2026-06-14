@@ -1,53 +1,32 @@
 // src/lib/supabase.ts
-// Two exports:
-//   supabase        → browser client (React islands / client JS)
-//   supabaseAdmin   → service-role client (server-only, bypasses RLS)
-//   makeServerClient→ SSR client factory that reads/writes Astro cookies (login, middleware)
+// Exports THREE clients — use the right one:
+//   supabase      → browser-safe anon client (React components, client-side)
+//   makeServerClient(cookies) → SSR client (Astro pages frontmatter only)
+//   supabaseAdmin → service role bypass (server-only, never import in .tsx)
 
-import { createBrowserClient, createServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
+import type { AstroCookies } from 'astro';
 
-const URL  = import.meta.env.PUBLIC_SUPABASE_URL as string;
-const ANON = import.meta.env.PUBLIC_SUPABASE_ANON_KEY as string;
-const ROLE = import.meta.env.SUPABASE_SERVICE_ROLE_KEY as string;
+const SUPABASE_URL  = import.meta.env.PUBLIC_SUPABASE_URL  as string;
+const SUPABASE_ANON = import.meta.env.PUBLIC_SUPABASE_ANON_KEY as string;
+const SERVICE_KEY   = import.meta.env.SUPABASE_SERVICE_ROLE_KEY as string;
 
-/** Browser-side Supabase client — safe to use in React islands */
-export const supabase = createBrowserClient(URL, ANON);
+// ── Browser client (anon key, safe in React components) ──
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
-/** 
- * Server-side Supabase client — reads/writes Astro cookies so the session
- * is persisted between requests (login, middleware session checks).
- * Call this inside .astro frontmatter or API routes, passing Astro.cookies.
- */
-export function makeServerClient(cookies: {
-  get(key: string): { value: string } | undefined;
-  set(key: string, value: string, opts?: Record<string, unknown>): void;
-  delete(key: string, opts?: Record<string, unknown>): void;
-}) {
-  return createServerClient(URL, ANON, {
+// ── Server client factory (reads/writes Astro cookies for auth) ──
+export function makeServerClient(cookies: AstroCookies) {
+  return createServerClient(SUPABASE_URL, SUPABASE_ANON, {
     cookies: {
-      get(key: string) {
-        return cookies.get(key)?.value;
-      },
-      set(key: string, value: string, options: CookieOptions) {
-        cookies.set(key, value, {
-          ...options,
-          sameSite: (options?.sameSite as string) ?? 'lax',
-          secure: true,
-          httpOnly: true,
-        } as Record<string, unknown>);
-      },
-      remove(key: string, options: CookieOptions) {
-        cookies.delete(key, options as Record<string, unknown>);
-      },
+      get:    (key)        => cookies.get(key)?.value,
+      set:    (key, value, opts) => cookies.set(key, value, opts),
+      remove: (key, opts)  => cookies.delete(key, opts),
     },
   });
 }
 
-/**
- * Admin/service-role client — bypasses RLS.
- * SERVER ONLY. Never import in React components or client scripts.
- */
-export const supabaseAdmin = createClient(URL, ROLE, {
+// ── Admin client (service role, NEVER import in .tsx files) ──
+export const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
