@@ -2,28 +2,36 @@
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import tailwind from '@astrojs/tailwind';
-import sitemap from '@astrojs/sitemap';
 import cloudflare from '@astrojs/cloudflare';
 
+// NOTE: sitemap removed — it crashes in full SSR mode.
+// Generate sitemap manually or add back only after site is live.
+
 export default defineConfig({
-  site: 'https://mashurban.com',
-  output: 'server',           // SSR for Cloudflare Pages — all pages server-rendered
+  site: 'https://mashoorbano.pages.dev',
+  output: 'server',
   adapter: cloudflare({
-    mode: 'directory',        // generates _worker.js directory for Pages Functions
-    functionPerRoute: false,  // single worker bundle (free tier compatible)
+    mode: 'directory',
+    functionPerRoute: false,
     imageService: 'passthrough',
   }),
   integrations: [
     react(),
     tailwind(),
-    sitemap({
-      filter: (page) =>
-        !page.includes('/admin') && !page.includes('/api'),
-    }),
+    // sitemap() removed — incompatible with output:'server' on Cloudflare
   ],
   vite: {
     ssr: {
-      external: ['node:crypto', 'node:buffer', 'node:stream'],
+      external: ['node:crypto', 'node:buffer', 'node:stream', 'node:path'],
+    },
+    build: {
+      rollupOptions: {
+        // Prevent circular chunk warnings from becoming errors
+        onwarn(warning, warn) {
+          if (warning.code === 'CIRCULAR_DEPENDENCY') return;
+          warn(warning);
+        },
+      },
     },
   },
 });
