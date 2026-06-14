@@ -1,0 +1,259 @@
+---
+// src/pages/admin/header.astro
+// Controls the site navbar/header: logo (text or image), navbar size, colours,
+// menu items (name + link + sort order), CTA button.
+// Stored in site_content WHERE page='settings' AND section='navbar'
+export const prerender = false;
+import { makeServerClient, supabaseAdmin } from '@/lib/supabase';
+
+const supabase = makeServerClient(Astro.cookies);
+const { data: { session } } = await supabase.auth.getSession();
+if (!session) return Astro.redirect('/admin/login');
+
+let saved = false;
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  const get = (k: string, d = '') => f.get(k)?.toString() ?? d;
+
+  // Build menu items array from indexed fields
+  const count = parseInt(get('menu_count', '0'));
+  const menu_items = Array.from({ length: count }, (_, i) => ({
+    label: get(`menu_label_${i}`),
+    href:  get(`menu_href_${i}`),
+    sort_order: parseInt(get(`menu_sort_${i}`, String(i))),
+  })).filter(m => m.label).sort((a, b) => a.sort_order - b.sort_order);
+
+  const content = {
+    logo_type:         get('logo_type', 'text'),
+    logo_text1:        get('logo_text1', 'Mash'),
+    logo_text2:        get('logo_text2', 'urban'),
+    logo_image_url:    get('logo_image_url'),
+    logo_size:         get('logo_size', '20'),
+    navbar_height:     get('navbar_height', '20'),
+    navbar_bg:         get('navbar_bg', '#F7F5F2'),
+    logo_color1:       get('logo_color1', '#1A1A1A'),
+    logo_color2:       get('logo_color2', '#FF3B00'),
+    menu_color:        get('menu_color', '#666666'),
+    menu_hover_color:  get('menu_hover_color', '#1A1A1A'),
+    menu_size:         get('menu_size', '11'),
+    cta_label:         get('cta_label', 'Get Started'),
+    cta_href:          get('cta_href', '/#packages'),
+    cta_bg:            get('cta_bg', '#FF3B00'),
+    cta_text_color:    get('cta_text_color', '#FFFFFF'),
+    sticky:            get('sticky', 'on'),
+    menu_items,
+  };
+
+  const { error: e } = await supabaseAdmin
+    .from('site_content')
+    .upsert({ page: 'settings', section: 'navbar', content, updated_at: new Date().toISOString() }, { onConflict: 'page,section' });
+  if (e) error = e.message;
+  else saved = true;
+}
+
+const { data } = await supabaseAdmin.from('site_content').select('content').eq('page','settings').eq('section','navbar').single();
+const c = (data?.content as any) ?? {};
+const v = (k: string, d: string) => (c[k] ?? d) as string;
+
+const menuItems = (c.menu_items as Array<{label:string;href:string;sort_order:number}>) ?? [
+  { label: 'Services', href: '/#services', sort_order: 0 },
+  { label: 'Work',     href: '/#portfolio', sort_order: 1 },
+  { label: 'About',    href: '/#story', sort_order: 2 },
+  { label: 'Blog',     href: '/blog', sort_order: 3 },
+];
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Header / Navbar — Mashurban Admin</title>
+  <meta name="robots" content="noindex,nofollow"/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:#F7F5F2;color:#1A1A1A;font-family:Inter,sans-serif;min-height:100vh;display:flex}
+    aside{width:220px;min-height:100vh;background:#fff;border-right:1px solid #E5E0D8;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
+    .logo{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;padding:1.25rem 1rem;border-bottom:1px solid #E5E0D8}
+    .logo span{color:#FF3B00}
+    nav a{display:block;padding:.45rem 1rem;color:#888;font-size:.8125rem;text-decoration:none;transition:all .15s;border-left:2px solid transparent}
+    nav a:hover{color:#1A1A1A;background:#F7F5F2}
+    nav a.active{color:#FF3B00;border-left-color:#FF3B00;background:#fff5f3}
+    .sf{padding:.75rem 1rem;border-top:1px solid #E5E0D8;margin-top:auto}
+    .sf a{font-size:.75rem;color:#888;text-decoration:none}
+    main{flex:1;padding:2rem;max-width:920px}
+    h1{font-family:'Space Grotesk',sans-serif;font-size:1.375rem;font-weight:700;margin-bottom:.25rem;letter-spacing:-.02em}
+    .sub{color:#888;font-size:.8125rem;margin-bottom:1.5rem}
+    .card{background:#fff;border:1px solid #E5E0D8;border-radius:16px;padding:1.75rem;margin-bottom:1.25rem}
+    .card-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.9375rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:.5rem}
+    .card-title::before{content:'';width:3px;height:1rem;background:#FF3B00;border-radius:2px;flex-shrink:0}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+    .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
+    .grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.75rem}
+    .field{display:flex;flex-direction:column;gap:.375rem;margin-bottom:.75rem}
+    label{font-size:.7rem;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.06em}
+    input[type=text],input[type=url],input[type=number],input[type=color],select{width:100%;background:#F7F5F2;border:1.5px solid #E5E0D8;border-radius:10px;padding:.625rem .875rem;color:#1A1A1A;font-size:.875rem;font-family:inherit;outline:none;transition:border-color .2s}
+    input[type=color]{height:44px;padding:.3rem .5rem;cursor:pointer}
+    input:focus,select:focus{border-color:#FF3B00}
+    .range-row{display:flex;align-items:center;gap:.6rem}
+    input[type=range]{flex:1;accent-color:#FF3B00}
+    .range-val{font-size:.8rem;font-weight:700;color:#FF3B00;min-width:3rem;text-align:right}
+    .hint{font-size:.7rem;color:#aaa;margin-top:.2rem;line-height:1.5}
+    .menu-item{background:#F7F5F2;border:1px solid #E5E0D8;border-radius:12px;padding:1rem;margin-bottom:.75rem}
+    .menu-row{display:grid;grid-template-columns:90px 1fr 1fr;gap:.75rem;align-items:end}
+    .btn-add{padding:.6rem 1.25rem;background:#fff;border:1.5px dashed #FF3B00;color:#FF3B00;border-radius:10px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.8125rem;cursor:pointer;width:100%;margin-top:.5rem}
+    .btn-del{padding:.4rem .75rem;background:#fff;border:1px solid #E5E0D8;color:#888;border-radius:8px;font-size:.75rem;cursor:pointer}
+    .btn-del:hover{border-color:#ef4444;color:#ef4444}
+    .btn-save{padding:.875rem 2.5rem;background:#FF3B00;color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.9375rem;border:none;border-radius:12px;cursor:pointer;transition:background .2s}
+    .btn-save:hover{background:#e03200}
+    .toast{padding:.875rem 1.25rem;border-radius:12px;margin-bottom:1.5rem;font-size:.875rem;font-weight:500}
+    .toast.ok{background:#f0fdf4;border:1px solid #86efac;color:#166534}
+    .toast.err{background:#fef2f2;border:1px solid #fca5a5;color:#991b1b}
+    .radio-row{display:flex;gap:1.5rem;margin-bottom:.75rem}
+    .radio-row label{display:flex;align-items:center;gap:.4rem;text-transform:none;font-size:.8125rem;color:#444;cursor:pointer;letter-spacing:0}
+    input[type=radio]{accent-color:#FF3B00}
+  </style>
+</head>
+<body>
+<aside>
+  <div class="logo">Mash<span>urban</span></div>
+  <nav>
+    <a href="/admin">Dashboard</a>
+    <a href="/admin/header" class="active">Header</a>
+    <a href="/admin/hero">Hero</a>
+    <a href="/admin/story">Story</a>
+    <a href="/admin/services">Services</a>
+    <a href="/admin/packages">Packages</a>
+    <a href="/admin/portfolio">Portfolio</a>
+    <a href="/admin/testimonials">Testimonials</a>
+    <a href="/admin/orders">Orders</a>
+    <a href="/admin/leads">Leads</a>
+    <a href="/admin/blog">Blog</a>
+    <a href="/admin/seo">SEO</a>
+    <a href="/admin/media">Media</a>
+    <a href="/admin/settings">Settings</a>
+  </nav>
+  <div class="sf"><a href="/" target="_blank">← View site</a></div>
+</aside>
+
+<main>
+  <h1>Header / Navbar</h1>
+  <p class="sub">Logo, menu items, navbar size, and colours — controls the top bar across the whole site</p>
+
+  {saved && <div class="toast ok">✓ Header saved! Refresh the site to see changes.</div>}
+  {error && <div class="toast err">⚠ {error}</div>}
+
+  <form method="POST">
+
+    <!-- LOGO -->
+    <div class="card">
+      <div class="card-title">Logo</div>
+      <div class="radio-row">
+        <label><input type="radio" name="logo_type" value="text" checked={v('logo_type','text')==='text'}/> Text logo</label>
+        <label><input type="radio" name="logo_type" value="image" checked={v('logo_type','text')==='image'}/> Image logo</label>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Logo Text — Part 1</label><input type="text" name="logo_text1" value={v('logo_text1','Mash')} placeholder="Mash"/></div>
+        <div class="field"><label>Logo Text — Part 2 (coloured)</label><input type="text" name="logo_text2" value={v('logo_text2','urban')} placeholder="urban"/></div>
+      </div>
+      <div class="grid3">
+        <div class="field"><label>Part 1 Colour</label><input type="color" name="logo_color1" value={v('logo_color1','#1A1A1A')}/></div>
+        <div class="field"><label>Part 2 Colour</label><input type="color" name="logo_color2" value={v('logo_color2','#FF3B00')}/></div>
+        <div class="field"><label>Logo Size (px)</label>
+          <div class="range-row"><input type="range" name="logo_size" min="14" max="40" step="1" value={v('logo_size','20')} id="ls"/><span class="range-val" id="lsv">{v('logo_size','20')}px</span></div>
+        </div>
+      </div>
+      <div class="field"><label>Logo Image URL (used if "Image logo" selected)</label><input type="url" name="logo_image_url" value={v('logo_image_url','')} placeholder="https://... or /images/logo.svg"/><span class="hint">Upload via Media library, then paste the URL here</span></div>
+    </div>
+
+    <!-- NAVBAR STYLE -->
+    <div class="card">
+      <div class="card-title">Navbar Style</div>
+      <div class="grid4">
+        <div class="field"><label>Background</label><input type="color" name="navbar_bg" value={v('navbar_bg','#F7F5F2')}/></div>
+        <div class="field"><label>Menu Text</label><input type="color" name="menu_color" value={v('menu_color','#666666')}/></div>
+        <div class="field"><label>Menu Hover</label><input type="color" name="menu_hover_color" value={v('menu_hover_color','#1A1A1A')}/></div>
+        <div class="field"><label>Menu Size (px)</label>
+          <div class="range-row"><input type="range" name="menu_size" min="9" max="18" step="1" value={v('menu_size','11')} id="ms"/><span class="range-val" id="msv">{v('menu_size','11')}px</span></div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Navbar Vertical Padding (px)</label>
+          <div class="range-row"><input type="range" name="navbar_height" min="8" max="48" step="1" value={v('navbar_height','20')} id="nh"/><span class="range-val" id="nhv">{v('navbar_height','20')}px</span></div>
+          <span class="hint">Controls navbar thickness</span>
+        </div>
+        <div class="field"><label>Sticky on scroll?</label>
+          <select name="sticky"><option value="on" selected={v('sticky','on')==='on'}>Yes — stays at top</option><option value="off" selected={v('sticky','on')==='off'}>No — scrolls away</option></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- MENU ITEMS -->
+    <div class="card">
+      <div class="card-title">Menu Items</div>
+      <p class="hint" style="margin-bottom:1rem">Edit names, links, and sort order. Lower sort number = appears first (left).</p>
+      <div id="menuList">
+        {menuItems.map((m, i) => (
+          <div class="menu-item" data-idx={i}>
+            <div class="menu-row">
+              <div class="field" style="margin:0"><label>Order</label><input type="number" name={`menu_sort_${i}`} value={m.sort_order ?? i}/></div>
+              <div class="field" style="margin:0"><label>Name</label><input type="text" name={`menu_label_${i}`} value={m.label}/></div>
+              <div class="field" style="margin:0"><label>Link</label><input type="text" name={`menu_href_${i}`} value={m.href}/></div>
+            </div>
+            <div style="margin-top:.5rem;text-align:right"><button type="button" class="btn-del" onclick="this.closest('.menu-item').remove()">Remove</button></div>
+          </div>
+        ))}
+      </div>
+      <input type="hidden" name="menu_count" id="menuCount" value={menuItems.length}/>
+      <button type="button" class="btn-add" id="addMenu">+ Add Menu Item</button>
+    </div>
+
+    <!-- CTA BUTTON -->
+    <div class="card">
+      <div class="card-title">CTA Button (right side)</div>
+      <div class="grid2">
+        <div class="field"><label>Button Label</label><input type="text" name="cta_label" value={v('cta_label','Get Started')}/></div>
+        <div class="field"><label>Button Link</label><input type="text" name="cta_href" value={v('cta_href','/#packages')}/></div>
+        <div class="field"><label>Button Background</label><input type="color" name="cta_bg" value={v('cta_bg','#FF3B00')}/></div>
+        <div class="field"><label>Button Text Colour</label><input type="color" name="cta_text_color" value={v('cta_text_color','#FFFFFF')}/></div>
+      </div>
+    </div>
+
+    <button type="submit" class="btn-save">Save Header →</button>
+  </form>
+</main>
+
+<script>
+  const link = (r: string, o: string, suf = 'px') => {
+    const el = document.getElementById(r) as HTMLInputElement;
+    const out = document.getElementById(o);
+    el?.addEventListener('input', () => { if (out) out.textContent = el.value + suf; });
+  };
+  link('ls','lsv'); link('ms','msv'); link('nh','nhv');
+
+  // Add menu item dynamically
+  const list = document.getElementById('menuList');
+  const countInput = document.getElementById('menuCount') as HTMLInputElement;
+  const addBtn = document.getElementById('addMenu');
+  let nextIdx = list ? list.querySelectorAll('.menu-item').length : 0;
+
+  addBtn?.addEventListener('click', () => {
+    const i = nextIdx++;
+    const div = document.createElement('div');
+    div.className = 'menu-item';
+    div.innerHTML = `
+      <div class="menu-row">
+        <div class="field" style="margin:0"><label>Order</label><input type="number" name="menu_sort_${i}" value="${i}"></div>
+        <div class="field" style="margin:0"><label>Name</label><input type="text" name="menu_label_${i}" placeholder="New Item"></div>
+        <div class="field" style="margin:0"><label>Link</label><input type="text" name="menu_href_${i}" placeholder="/#section"></div>
+      </div>
+      <div style="margin-top:.5rem;text-align:right"><button type="button" class="btn-del">Remove</button></div>`;
+    div.querySelector('.btn-del')?.addEventListener('click', () => div.remove());
+    list?.appendChild(div);
+    if (countInput) countInput.value = String(nextIdx);
+  });
+</script>
+</body>
+</html>

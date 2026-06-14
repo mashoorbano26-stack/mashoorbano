@@ -1,0 +1,82 @@
+---
+// src/pages/index.astro
+import SEOHead from '@/components/layout/SEOHead.astro';
+import Navbar from '@/components/layout/Navbar.astro';
+import Footer from '@/components/layout/Footer.astro';
+import Hero from '@/components/sections/Hero.astro';
+import SocialProofBar from '@/components/sections/SocialProofBar.astro';
+import Services from '@/components/sections/Services.astro';
+import StartupStory from '@/components/sections/StartupStory.astro';
+import Packages from '@/components/sections/Packages.astro';
+import Testimonials from '@/components/sections/Testimonials.astro';
+import ContactSection from '@/components/sections/ContactSection.astro';
+import '@/styles/global.css';
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Mashurban',
+  url: 'https://mashurban.com',
+  description: 'Digital agency — websites, merch, content, Meta ads, Google ads for Indian brands.',
+  telephone: '+917814718340',
+  areaServed: 'IN',
+  address: { '@type': 'PostalAddress', addressCountry: 'IN' },
+};
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <SEOHead
+      title="Mashurban — Digital Agency India"
+      description="Websites. Merch. Content. Meta Ads. Google Ads. All under one roof for brands that refuse to blend in."
+      keywords="digital agency india, website design, meta ads, google ads, brand identity, mashurban"
+      jsonLd={jsonLd}
+    />
+  </head>
+  <body style="background:#F7F5F2; overflow-x:hidden; cursor:none;">
+
+    <!-- Custom cursor dot -->
+    <div id="g-dot" aria-hidden="true" style="
+      position:fixed; width:10px; height:10px; background:#FF3B00;
+      border-radius:50%; pointer-events:none; z-index:99999;
+      transform:translate(-50%,-50%); mix-blend-mode:multiply;
+      transition:width .15s, height .15s; left:-30px; top:-30px;">
+    </div>
+
+    <Navbar />
+
+    <main>
+      <Hero />
+      <SocialProofBar />
+      <Services />
+      <StartupStory />
+      <Packages />
+      <Testimonials />
+      <ContactSection />
+    </main>
+
+    <Footer />
+
+    <script>
+      /* Cursor tracking */
+      const dot = document.getElementById('g-dot');
+      document.addEventListener('mousemove', (e) => {
+        if (dot) { dot.style.left = e.clientX + 'px'; dot.style.top = e.clientY + 'px'; }
+      });
+      document.querySelectorAll('a, button').forEach(el => {
+        el.addEventListener('mouseenter', () => { if (dot) { dot.style.width = '20px'; dot.style.height = '20px'; } });
+        el.addEventListener('mouseleave', () => { if (dot) { dot.style.width = '10px'; dot.style.height = '10px'; } });
+      });
+
+      /* Scroll reveal */
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); }
+        });
+      }, { threshold: 0.1 });
+      document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+    </script>
+
+  </body>
+</html>

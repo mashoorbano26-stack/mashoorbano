@@ -1,0 +1,71 @@
+---
+// src/components/sections/Services.astro
+// Fetches from site_content (page=home, section=services) — editable from admin panel.
+import { supabaseAdmin } from '@/lib/supabase';
+
+interface Service {
+  id?: string;
+  num?: string;
+  icon: string;
+  name: string;
+  desc: string;
+  href: string;
+  is_active?: boolean;
+  sort_order?: number;
+}
+
+interface ServicesContent {
+  services?: Service[];
+}
+
+let services: Service[] = [];
+try {
+  const { data } = await supabaseAdmin
+    .from('site_content')
+    .select('content')
+    .eq('page', 'home')
+    .eq('section', 'services')
+    .single();
+  if (data?.content) {
+    const c = data.content as ServicesContent;
+    services = (c.services ?? []).filter(s => s.is_active !== false);
+  }
+} catch {}
+
+// Fallback defaults
+if (!services.length) {
+  services = [
+    { num: '01', icon: '⬡', name: 'Website Design',   desc: 'Fast, SEO-ready sites that convert visitors into clients. No templates. No fluff.',                href: '/services/websites' },
+    { num: '02', icon: '◈', name: 'Merchandise',       desc: 'T-shirts, caps, custom drops — merch your audience actually wants to wear.',                       href: '/services/merchandise' },
+    { num: '03', icon: '▶', name: 'Content Creation',  desc: 'Reels, shoots, scripting — content that stops the scroll and earns the follow.',                   href: '/services/content-creation' },
+    { num: '04', icon: '◉', name: 'Meta Ads',          desc: 'Facebook + Instagram campaigns engineered to spend less and return more.',                          href: '/services/meta-ads' },
+    { num: '05', icon: '◎', name: 'Google Ads',        desc: 'Search, Display, YouTube — show up exactly when your customer is looking.',                        href: '/services/google-ads' },
+    { num: '06', icon: '◆', name: 'Brand Identity',    desc: 'Logo, palette, typeface, voice — a brand system built to scale with you.',                         href: '/services/branding' },
+  ];
+}
+---
+
+<section id="services" class="bg-[#F7F5F2] py-24 px-6 md:px-12">
+  <div class="max-w-7xl mx-auto">
+    <div class="section-label reveal">02 — What we do</div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 reveal">
+      {services.map((service, i) => (
+        <a
+          href={service.href}
+          class="group bg-white border border-[#E5E0D8] rounded-2xl p-8 overflow-hidden relative block hover:border-[#FF3B00] hover:shadow-lg transition-all duration-300"
+        >
+          <div class="text-xs text-[#AAA] tracking-[0.14em] uppercase mb-8">{service.num ?? String(i + 1).padStart(2, '0')}</div>
+          <div class="text-3xl mb-4 text-[#1A1A1A]">{service.icon}</div>
+          <h3 class="font-heading font-bold text-xl text-[#1A1A1A] mb-2">{service.name}</h3>
+          <p class="text-sm text-[#666] leading-relaxed">{service.desc}</p>
+          <div class="mt-6 text-xs tracking-widest uppercase text-[#AAA] group-hover:text-[#FF3B00] transition-colors flex items-center gap-2">
+            Learn more <span class="transition-transform group-hover:translate-x-1 group-hover:-translate-y-1">↗</span>
+          </div>
+          <!-- Accent line on hover -->
+          <div class="absolute bottom-0 left-0 h-0.5 w-0 bg-[#FF3B00] group-hover:w-full transition-all duration-500"></div>
+        </a>
+      ))}
+    </div>
+  </div>
+</section>

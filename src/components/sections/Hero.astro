@@ -1,0 +1,248 @@
+---
+// src/components/sections/Hero.astro
+// Updates:
+//  - Video URL accepts YouTube, Instagram, OR direct .mp4 links (auto-detected)
+//  - Marquee spins seamlessly forever (rotates whole group — no start/end jump)
+//  - Hover shows an arrow in the circle centre, marquee brightens and encircles it
+//  - Subheadline has X/Y placement controls
+//  - All previous controls (size/position/colour per element) retained
+
+import { supabaseAdmin } from '@/lib/supabase';
+
+interface HeroContent { [key: string]: string | undefined; }
+
+let c: HeroContent = {};
+try {
+  const { data } = await supabaseAdmin
+    .from('site_content')
+    .select('content')
+    .eq('page', 'home')
+    .eq('section', 'hero')
+    .single();
+  if (data?.content) c = data.content as HeroContent;
+} catch {}
+
+// ── Video URL parser: detect YouTube / Instagram / direct file ──
+function parseVideo(raw: string) {
+  const url = (raw ?? '').trim();
+  if (!url) return { type: 'none' as const };
+  const yt = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  if (yt) return { type: 'youtube' as const, id: yt[1] };
+  const ig = url.match(/instagram\.com\/(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/);
+  if (ig) return { type: 'instagram' as const, id: ig[1] };
+  return { type: 'file' as const, url };
+}
+
+const rawVideo = (c.video_url ?? '').trim() || 'https://www.w3schools.com/html/mov_bbb.mp4';
+const vid = parseVideo(rawVideo);
+
+// Embed URLs
+const ytCircle = vid.type === 'youtube'
+  ? `https://www.youtube.com/embed/${vid.id}?autoplay=1&mute=1&loop=1&playlist=${vid.id}&controls=0&modestbranding=1&showinfo=0&rel=0&playsinline=1&disablekb=1`
+  : '';
+const ytFull = vid.type === 'youtube'
+  ? `https://www.youtube.com/embed/${vid.id}?autoplay=1&loop=1&playlist=${vid.id}&controls=1&rel=0&playsinline=1`
+  : '';
+const igEmbed = vid.type === 'instagram'
+  ? `https://www.instagram.com/reel/${vid.id}/embed`
+  : '';
+
+// ── WORD 1 ──
+const word1        = c.word1            ?? 'MASHOOR';
+const word1Color   = c.word1_color      ?? '#F5F5F0';
+const word1Size    = c.word1_size       ?? 'clamp(2.2rem,7vw,5.5rem)';
+const word1OffsetX = c.word1_offset_x   ?? '0';
+const word1OffsetY = c.word1_offset_y   ?? '0';
+// ── WORD 2 ──
+const word2        = c.word2            ?? 'BANO';
+const word2Color   = c.word2_color      ?? '#FF3B00';
+const word2Size    = c.word2_size       ?? 'clamp(2.2rem,7vw,5.5rem)';
+const word2OffsetX = c.word2_offset_x   ?? '0';
+const word2OffsetY = c.word2_offset_y   ?? '0';
+// ── CIRCLE ──
+const circleSize   = c.circle_size      ?? 'clamp(150px,17vw,260px)';
+const circleBorder = c.circle_border_color ?? '#FFFFFF';
+const circleBorderW= c.circle_border_width ?? '2';
+const circleOffsetX= c.circle_offset_x  ?? '0';
+const circleOffsetY= c.circle_offset_y  ?? '0';
+// ── MARQUEE ──
+const orbitalRaw   = c.orbital_text     ?? 'SEE MORE · SEE MORE · SEE MORE · SEE MORE ·';
+const orbColor     = c.orbital_color    ?? '#FFFFFF';
+const orbSize      = c.orbital_size      ?? '11';
+const orbSpeed     = parseFloat(c.orbital_speed ?? '14');
+const marqueeHoverScale = c.marquee_hover_scale ?? '1.35';
+// ── GENERAL ──
+const wordsGap     = c.words_gap        ?? 'clamp(5rem,11vw,11rem)';
+const subheadline  = c.subheadline      ?? 'Websites · Merch · Content · Meta Ads · Google Ads';
+const subOffsetX   = c.sub_offset_x     ?? '0';
+const subOffsetY   = c.sub_offset_y     ?? '0';
+const ctaPrimary   = c.cta_primary_label ?? 'See Packages';
+const ctaSecond    = c.cta_secondary_label ?? 'Book a Free Call';
+const textColor    = c.text_color       ?? '#F5F5F0';
+const accentColor  = c.accent_color     ?? '#FF3B00';
+const bgColor      = c.bg_color         ?? '#0A0A0A';
+const meta1        = c.meta_line1       ?? 'Digital Agency';
+const meta2        = c.meta_line2       ?? "India's Bold Brands";
+const meta3        = c.meta_line3       ?? 'Est. 2024';
+const autoSec      = parseInt(c.auto_expand_seconds ?? '0');
+
+// Repeat marquee text many times so it fully fills the circle (seamless spin)
+const orbText = (orbitalRaw.trim() + ' ').repeat(8);
+const pid = 'op' + Math.random().toString(36).slice(2, 7);
+---
+
+<section id="hero" class="hero-section" style={`position:relative;min-height:100vh;overflow:hidden;background:${bgColor};`}>
+
+  <!-- Meta labels -->
+  <div style={`position:absolute;top:5.5rem;left:2rem;z-index:5;display:flex;flex-direction:column;gap:.3rem;color:${textColor};opacity:.2;font-size:.58rem;letter-spacing:.22em;text-transform:uppercase;font-family:Inter,sans-serif;`}>
+    <span>{meta1}</span><span>{meta2}</span><span>{meta3}</span>
+  </div>
+  <div style={`position:absolute;top:5.5rem;right:2rem;z-index:5;color:${textColor};opacity:.2;font-size:.58rem;letter-spacing:.18em;font-family:Inter,sans-serif;`}>©2024</div>
+
+  <!-- CENTRED HEADLINE -->
+  <div id="heroHeadline" class="hero-headline"
+    style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10;display:flex;align-items:center;justify-content:center;width:100%;"
+    aria-label={`${word1} ${word2}`}>
+
+    <div class="hero-words" style={`display:flex;align-items:center;justify-content:center;gap:${wordsGap};`}>
+      <span class="hero-word" style={`font-family:'Space Grotesk',sans-serif;font-weight:900;color:${word1Color};font-size:${word1Size};letter-spacing:-0.04em;line-height:1;white-space:nowrap;transform:translate(${word1OffsetX}px,${word1OffsetY}px);`}>{word1}</span>
+      <span class="hero-word" style={`font-family:'Space Grotesk',sans-serif;font-weight:900;color:${word2Color};font-size:${word2Size};letter-spacing:-0.04em;line-height:1;white-space:nowrap;transform:translate(${word2OffsetX}px,${word2OffsetY}px);`}>{word2}</span>
+    </div>
+
+    <!-- CIRCLE -->
+    <div id="heroCircle" class="hero-circle"
+      style={`position:absolute;top:50%;left:50%;transform:translate(calc(-50% + ${circleOffsetX}px),calc(-50% + ${circleOffsetY}px));z-index:15;width:${circleSize};height:${circleSize};cursor:pointer;`}
+      role="button" tabindex="0" aria-label="Play video fullscreen" title="Click to play video">
+
+      <!-- Marquee ring — seamless infinite spin via rotating group -->
+      <svg class="hero-ring" viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg"
+        style={`position:absolute;inset:0;width:100%;height:100%;overflow:visible;opacity:.4;transition:opacity .4s ease,transform .4s ease;--hscale:${marqueeHoverScale};`}>
+        <defs>
+          <path id={pid} d="M130,130 m-104,0 a104,104 0 1,1 208,0 a104,104 0 1,1 -208,0" fill="none"/>
+        </defs>
+        <g>
+          <text font-size={orbSize} font-family="'Space Grotesk',sans-serif" font-weight="700" fill={orbColor} letter-spacing="4">
+            <textPath href={`#${pid}`} startOffset="0">{orbText}</textPath>
+          </text>
+          <!-- Seamless: rotate the whole group 360° forever, no start/end jump -->
+          <animateTransform attributeName="transform" type="rotate"
+            from="0 130 130" to="360 130 130"
+            dur={`${orbSpeed}s`} repeatCount="indefinite"/>
+        </g>
+      </svg>
+
+      <!-- VIDEO inside circle: file / youtube / instagram -->
+      <div style={`position:absolute;inset:14%;border-radius:50%;overflow:hidden;border:${circleBorderW}px solid ${circleBorder};background:#000;`}>
+        {vid.type === 'file' && (
+          <video id="heroCircleVid" style="width:100%;height:100%;object-fit:cover;display:block;" src={vid.url} autoplay muted loop playsinline preload="auto"/>
+        )}
+        {vid.type === 'youtube' && (
+          <iframe
+            src={ytCircle}
+            style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:178%;height:178%;border:0;pointer-events:none;"
+            allow="autoplay; encrypted-media" loading="lazy" title="Hero video"></iframe>
+        )}
+        {vid.type === 'instagram' && (
+          <iframe
+            src={igEmbed}
+            style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:140%;height:160%;border:0;pointer-events:none;"
+            allow="autoplay; encrypted-media" loading="lazy" title="Hero video"></iframe>
+        )}
+      </div>
+
+      <!-- HOVER ARROW — round ORANGE filled button in centre; the MOVING marquee is the ring around it -->
+      <div id="heroArrow" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(.6);opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:18;">
+        <div style={`width:clamp(52px,6vw,76px);height:clamp(52px,6vw,76px);border-radius:50%;background:${accentColor};display:flex;align-items:center;justify-content:center;`}>
+          <svg width="42%" height="42%" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+            <path d="M13 27 L27 13 M27 13 H17 M27 13 V23" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Subheadline (X/Y placement) + line + CTAs -->
+  <div style={`position:absolute;bottom:clamp(2.5rem,10vh,6rem);left:50%;transform:translateX(-50%);z-index:10;display:flex;flex-direction:column;align-items:center;gap:1.4rem;width:100%;padding:0 2rem;text-align:center;`}>
+    <p style={`color:${textColor};opacity:.4;font-size:clamp(.6rem,1vw,.8125rem);letter-spacing:.18em;text-transform:uppercase;font-family:Inter,sans-serif;margin:0;line-height:1.9;transform:translate(${subOffsetX}px,${subOffsetY}px);`}>{subheadline}</p>
+    <div style={`width:1px;height:30px;background:linear-gradient(to bottom,${accentColor},transparent);opacity:.6;`}></div>
+    <div style="display:flex;align-items:center;gap:.875rem;flex-wrap:wrap;justify-content:center;">
+      <a href="#packages" style={`padding:.75rem 1.875rem;background:${accentColor};color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;text-decoration:none;display:inline-block;transition:opacity .2s;`} onmouseover="this.style.opacity='.82'" onmouseout="this.style.opacity='1'">{ctaPrimary}</a>
+      <a href="#contact" style={`padding:.75rem 1.875rem;border:1.5px solid rgba(255,255,255,.15);color:${textColor};opacity:.7;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;text-decoration:none;display:inline-block;transition:all .2s;`} onmouseover="this.style.borderColor='rgba(255,255,255,.5)';this.style.opacity='1'" onmouseout="this.style.borderColor='rgba(255,255,255,.15)';this.style.opacity='.7'">{ctaSecond}</a>
+    </div>
+  </div>
+
+  <div style="position:absolute;bottom:1.25rem;left:50%;transform:translateX(-50%);z-index:10;opacity:.2;font-family:Inter,sans-serif;font-size:.5rem;letter-spacing:.28em;text-transform:uppercase;color:#fff;" aria-hidden="true">Scroll</div>
+
+  <!-- Fullscreen overlay -->
+  <div id="heroFullscreen" style="position:absolute;inset:0;z-index:200;background:#000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .45s ease;" aria-modal="true" role="dialog" aria-label="Fullscreen video">
+    <div id="heroFullInner" style="width:100%;height:100%;"></div>
+    <button id="heroCloseBtn" aria-label="Close video" style="position:absolute;top:1.25rem;right:1.25rem;width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.65);border:1.5px solid rgba(255,255,255,.2);color:#fff;font-size:1.125rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;z-index:201;" onmouseover="this.style.background='#FF3B00';this.style.borderColor='#FF3B00'" onmouseout="this.style.background='rgba(0,0,0,.65)';this.style.borderColor='rgba(255,255,255,.2)'">✕</button>
+  </div>
+
+</section>
+
+<style>
+  .hero-headline:hover .hero-ring { opacity: 1 !important; }
+  .hero-circle:hover .hero-ring, .hero-circle:focus .hero-ring {
+    opacity: 1 !important;
+    transform: scale(var(--hscale, 1.35)) !important;
+  }
+  .hero-circle:hover #heroArrow, .hero-circle:focus #heroArrow {
+    opacity: 1 !important;
+    transform: translate(-50%, -50%) scale(1) !important;
+  }
+
+  @media (max-width: 640px) {
+    .hero-headline { position: absolute !important; flex-direction: column !important; }
+    .hero-words { flex-direction: column !important; gap: clamp(5.5rem, 30vw, 9rem) !important; }
+    .hero-word { font-size: clamp(2rem, 11vw, 3rem) !important; text-align: center !important; }
+    .hero-circle { width: clamp(120px, 34vw, 160px) !important; height: clamp(120px, 34vw, 160px) !important; }
+  }
+</style>
+
+<script define:vars={{ autoSec, vidType: vid.type, fileUrl: vid.type === 'file' ? vid.url : '', ytFull, igEmbed }}>
+(function() {
+  const circle     = document.getElementById('heroCircle');
+  const fullscreen = document.getElementById('heroFullscreen');
+  const inner      = document.getElementById('heroFullInner');
+  const closeBtn   = document.getElementById('heroCloseBtn');
+  if (!circle || !fullscreen || !inner || !closeBtn) return;
+
+  function buildFull() {
+    if (vidType === 'file') {
+      return `<video src="${fileUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" autoplay loop playsinline controls></video>`;
+    }
+    if (vidType === 'youtube') {
+      return `<iframe src="${ytFull}" style="width:100%;height:100%;border:0;" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
+    }
+    if (vidType === 'instagram') {
+      return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><iframe src="${igEmbed}" style="width:min(420px,90vw);height:min(720px,90vh);border:0;" allow="autoplay; encrypted-media"></iframe></div>`;
+    }
+    return '';
+  }
+
+  function open() {
+    inner.innerHTML = buildFull();
+    fullscreen.style.opacity = '1';
+    fullscreen.style.pointerEvents = 'auto';
+    document.body.style.overflow = 'hidden';
+  }
+  function close() {
+    fullscreen.style.opacity = '0';
+    fullscreen.style.pointerEvents = 'none';
+    inner.innerHTML = '';
+    document.body.style.overflow = '';
+  }
+  circle.addEventListener('click', open);
+  circle.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+  closeBtn.addEventListener('click', close);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+
+  if (autoSec > 0) {
+    const t = setTimeout(() => { if (!fullscreen.style.opacity || fullscreen.style.opacity === '0') open(); }, autoSec * 1000);
+    closeBtn.addEventListener('click', () => clearTimeout(t), { once: true });
+    window.addEventListener('scroll', () => clearTimeout(t), { once: true });
+  }
+})();
+</script>

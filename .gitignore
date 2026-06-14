@@ -1,0 +1,11 @@
+.env
+.env.local
+.env.production
+node_modules/
+dist/
+.output/
+.astro/
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*

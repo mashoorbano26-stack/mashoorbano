@@ -1,0 +1,160 @@
+---
+// src/pages/admin/testimonials.astro — full CRUD for testimonials table
+export const prerender = false;
+import { makeServerClient, supabaseAdmin } from '@/lib/supabase';
+const supabase = makeServerClient(Astro.cookies);
+const { data: { session } } = await supabase.auth.getSession();
+if (!session) return Astro.redirect('/admin/login');
+
+let saved = false; let error = '';
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  const act = f.get('_action')?.toString();
+  if (act === 'save') {
+    const id = f.get('id')?.toString();
+    const row = {
+      client_name:  f.get('client_name')?.toString() ?? '',
+      brand_name:   f.get('brand_name')?.toString() ?? '',
+      designation:  f.get('designation')?.toString() ?? '',
+      quote:        f.get('quote')?.toString() ?? '',
+      photo_url:    f.get('photo_url')?.toString() || null,
+      video_url:    f.get('video_url')?.toString() || null,
+      rating:       parseInt(f.get('rating')?.toString() ?? '5'),
+      service_type: f.get('service_type')?.toString() || null,
+      is_active:    f.get('is_active') !== 'off',
+      sort_order:   parseInt(f.get('sort_order')?.toString() ?? '0'),
+    };
+    if (id) { const { error: e } = await supabaseAdmin.from('testimonials').update(row).eq('id',id); if(e) error=e.message; else saved=true; }
+    else    { const { error: e } = await supabaseAdmin.from('testimonials').insert(row);              if(e) error=e.message; else saved=true; }
+  }
+  if (act === 'toggle') {
+    const id = f.get('id')?.toString();
+    const cur = f.get('current')?.toString() === 'true';
+    if(id){ await supabaseAdmin.from('testimonials').update({ is_active: !cur }).eq('id',id); saved=true; }
+  }
+}
+const { data: testimonials } = await supabaseAdmin.from('testimonials').select('*').order('sort_order');
+const rows = testimonials ?? [];
+---
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Testimonials — Mashurban Admin</title><meta name="robots" content="noindex,nofollow"/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:#F7F5F2;color:#1A1A1A;font-family:Inter,sans-serif;min-height:100vh;display:flex}
+    aside{width:220px;min-height:100vh;background:#fff;border-right:1px solid #E5E0D8;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
+    .logo{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;padding:1.25rem 1rem;border-bottom:1px solid #E5E0D8}
+    .logo span{color:#FF3B00}
+    nav a{display:block;padding:.45rem 1rem;color:#888;font-size:.8125rem;text-decoration:none;border-left:2px solid transparent;transition:all .15s}
+    nav a:hover{color:#1A1A1A;background:#F7F5F2}
+    nav a.active{color:#FF3B00;border-left-color:#FF3B00;background:#fff5f3}
+    .sf{padding:.75rem 1rem;border-top:1px solid #E5E0D8;margin-top:auto}
+    .sf a{font-size:.75rem;color:#888;text-decoration:none}
+    main{flex:1;padding:2rem;max-width:900px}
+    h1{font-family:'Space Grotesk',sans-serif;font-size:1.375rem;font-weight:700;margin-bottom:.25rem;letter-spacing:-.02em}
+    .sub{color:#888;font-size:.8125rem;margin-bottom:2rem}
+    .card{background:#fff;border:1px solid #E5E0D8;border-radius:16px;padding:1.5rem;margin-bottom:1rem}
+    .new-form{background:#fff5f3;border:1.5px dashed #FF3B00;border-radius:16px;padding:1.5rem;margin-bottom:1.5rem}
+    .new-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.9375rem;color:#FF3B00;margin-bottom:1rem}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+    .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem}
+    .field{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.5rem}
+    label{font-size:.7rem;font-weight:500;color:#666;text-transform:uppercase;letter-spacing:.06em}
+    input[type=text],input[type=url],input[type=number],select,textarea{width:100%;background:#F7F5F2;border:1.5px solid #E5E0D8;border-radius:8px;padding:.5rem .75rem;color:#1A1A1A;font-size:.8125rem;font-family:inherit;outline:none;transition:border-color .2s}
+    input:focus,select:focus,textarea:focus{border-color:#FF3B00}
+    textarea{resize:vertical;min-height:80px}
+    select{appearance:none}
+    .btn-save{padding:.55rem 1.25rem;background:#FF3B00;color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.8125rem;border:none;border-radius:8px;cursor:pointer;margin-top:.75rem}
+    .row-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem}
+    .client-info strong{font-family:'Space Grotesk',sans-serif;font-size:.9375rem}
+    .client-info span{font-size:.75rem;color:#888;display:block;margin-top:.125rem}
+    .active-badge{font-size:.65rem;padding:.2rem .6rem;border-radius:999px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+    .active-badge.on{background:#f0fdf4;color:#166534;border:1px solid #86efac}
+    .active-badge.off{background:#f3f4f6;color:#888;border:1px solid #e5e7eb}
+    .toast{padding:.75rem 1.25rem;border-radius:10px;margin-bottom:1.5rem;font-size:.875rem;font-weight:500}
+    .toast.ok{background:#f0fdf4;border:1px solid #86efac;color:#166534}
+    .toast.err{background:#fef2f2;border:1px solid #fca5a5;color:#991b1b}
+    details summary{cursor:pointer;list-style:none;user-select:none}
+  </style>
+</head><body>
+<aside>
+  <div class="logo">Mash<span>urban</span></div>
+  <nav>
+    <a href="/admin">Dashboard</a><a href="/admin/header">Header</a><a href="/admin/hero">Hero</a><a href="/admin/story">Story</a>
+    <a href="/admin/services">Services</a><a href="/admin/packages">Packages</a>
+    <a href="/admin/portfolio">Portfolio</a><a href="/admin/testimonials" class="active">Testimonials</a>
+    <a href="/admin/orders">Orders</a><a href="/admin/leads">Leads</a>
+    <a href="/admin/blog">Blog</a><a href="/admin/seo">SEO</a>
+    <a href="/admin/media">Media</a><a href="/admin/settings">Settings</a>
+  </nav>
+  <div class="sf"><a href="/">← View site</a></div>
+</aside>
+<main>
+  <h1>Testimonials</h1>
+  <p class="sub">Add and manage client reviews — appear live on the homepage</p>
+  {saved && <div class="toast ok">✓ Saved!</div>}
+  {error && <div class="toast err">⚠ {error}</div>}
+
+  <div class="new-form">
+    <div class="new-title">+ Add Testimonial</div>
+    <form method="POST">
+      <input type="hidden" name="_action" value="save"/>
+      <div class="grid3">
+        <div class="field"><label>Client Name</label><input type="text" name="client_name" placeholder="Aryan Kapoor" required/></div>
+        <div class="field"><label>Brand / Company</label><input type="text" name="brand_name" placeholder="UrbanFit Apparel · Mumbai"/></div>
+        <div class="field"><label>Designation</label><input type="text" name="designation" placeholder="Founder"/></div>
+      </div>
+      <div class="field"><label>Quote</label><textarea name="quote" rows="3" placeholder="What they said about working with Mashurban..." required></textarea></div>
+      <div class="grid3">
+        <div class="field"><label>Service Type</label><input type="text" name="service_type" placeholder="Website + Meta Ads"/></div>
+        <div class="field"><label>Rating (1-5)</label><select name="rating"><option value="5">★★★★★ 5</option><option value="4">★★★★ 4</option><option value="3">★★★ 3</option></select></div>
+        <div class="field"><label>Sort Order</label><input type="number" name="sort_order" value="0"/></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Photo URL (optional)</label><input type="url" name="photo_url" placeholder="https://..."/></div>
+        <div class="field"><label>Video URL (optional)</label><input type="url" name="video_url" placeholder="YouTube embed URL"/></div>
+      </div>
+      <button type="submit" class="btn-save">Add Testimonial</button>
+    </form>
+  </div>
+
+  {rows.map((t: any) => (
+    <div class="card">
+      <details>
+        <summary>
+          <div class="row-header" style="display:inline-flex;width:calc(100% - 1rem);justify-content:space-between;align-items:center">
+            <div class="client-info"><strong>{t.client_name}</strong><span>{t.brand_name} · {t.service_type}</span></div>
+            <span class={`active-badge ${t.is_active ? 'on' : 'off'}`}>{t.is_active ? 'Active' : 'Hidden'}</span>
+          </div>
+        </summary>
+        <form method="POST" style="margin-top:1rem">
+          <input type="hidden" name="_action" value="save"/>
+          <input type="hidden" name="id" value={t.id}/>
+          <div class="grid3">
+            <div class="field"><label>Client Name</label><input type="text" name="client_name" value={t.client_name}/></div>
+            <div class="field"><label>Brand</label><input type="text" name="brand_name" value={t.brand_name ?? ''}/></div>
+            <div class="field"><label>Designation</label><input type="text" name="designation" value={t.designation ?? ''}/></div>
+          </div>
+          <div class="field"><label>Quote</label><textarea name="quote" rows="3">{t.quote}</textarea></div>
+          <div class="grid3">
+            <div class="field"><label>Service Type</label><input type="text" name="service_type" value={t.service_type ?? ''}/></div>
+            <div class="field"><label>Rating</label><select name="rating"><option value="5" selected={t.rating===5}>★★★★★ 5</option><option value="4" selected={t.rating===4}>★★★★ 4</option><option value="3" selected={t.rating===3}>★★★ 3</option></select></div>
+            <div class="field"><label>Sort Order</label><input type="number" name="sort_order" value={t.sort_order ?? 0}/></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label>Photo URL</label><input type="url" name="photo_url" value={t.photo_url ?? ''}/></div>
+            <div class="field"><label>Video URL</label><input type="url" name="video_url" value={t.video_url ?? ''}/></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:.5rem;margin-top:.5rem">
+            <label style="display:flex;align-items:center;gap:.375rem;font-size:.8125rem;cursor:pointer">
+              <input type="checkbox" name="is_active" checked={t.is_active} style="accent-color:#FF3B00"/> Active (show on site)
+            </label>
+          </div>
+          <button type="submit" class="btn-save">Save Changes</button>
+        </form>
+      </details>
+    </div>
+  ))}
+</main>
+</body></html>

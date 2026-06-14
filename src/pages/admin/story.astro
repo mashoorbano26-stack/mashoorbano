@@ -1,0 +1,149 @@
+---
+// src/pages/admin/story.astro
+export const prerender = false;
+import { makeServerClient, supabaseAdmin } from '@/lib/supabase';
+const supabase = makeServerClient(Astro.cookies);
+const { data: { session } } = await supabase.auth.getSession();
+if (!session) return Astro.redirect('/admin/login');
+
+let saved = false; let error = '';
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  const content = {
+    section_label:  f.get('section_label')?.toString() ?? '03 — Our story',
+    headline:       f.get('headline')?.toString() ?? 'Why Mashurban exists',
+    body:           f.get('body')?.toString() ?? '',
+    pull_quote:     f.get('pull_quote')?.toString() ?? '',
+    author:         f.get('author')?.toString() ?? 'Founder, Mashurban',
+    author_role:    f.get('author_role')?.toString() ?? 'Builder · Designer · Strategist',
+    photo_url:      f.get('photo_url')?.toString() ?? '',
+    video_url:      f.get('video_url')?.toString() ?? '',
+    bg_color:       f.get('bg_color')?.toString() ?? '#ffffff',
+    text_color:     f.get('text_color')?.toString() ?? '#555555',
+    heading_color:  f.get('heading_color')?.toString() ?? '#1A1A1A',
+    accent_color:   f.get('accent_color')?.toString() ?? '#FF3B00',
+    stat1_num:      f.get('stat1_num')?.toString() ?? '25+',
+    stat1_label:    f.get('stat1_label')?.toString() ?? 'Brands Built',
+    stat2_num:      f.get('stat2_num')?.toString() ?? '₹50L+',
+    stat2_label:    f.get('stat2_label')?.toString() ?? 'Ad Spend Managed',
+    stat3_num:      f.get('stat3_num')?.toString() ?? '3×',
+    stat3_label:    f.get('stat3_label')?.toString() ?? 'Average ROAS',
+    stat4_num:      f.get('stat4_num')?.toString() ?? '8',
+    stat4_label:    f.get('stat4_label')?.toString() ?? 'Cities Served',
+  };
+  const { error: e } = await supabaseAdmin.from('site_content').upsert({ page:'home', section:'story', content, updated_at: new Date().toISOString() }, { onConflict:'page,section' });
+  if (e) error = e.message; else saved = true;
+}
+const { data } = await supabaseAdmin.from('site_content').select('content').eq('page','home').eq('section','story').single();
+const c = (data?.content as Record<string,string>) ?? {};
+---
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Story Editor — Mashurban Admin</title><meta name="robots" content="noindex,nofollow"/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:#F7F5F2;color:#1A1A1A;font-family:Inter,sans-serif;min-height:100vh;display:flex}
+    aside{width:220px;min-height:100vh;background:#fff;border-right:1px solid #E5E0D8;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
+    .logo{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;padding:1.25rem 1rem;border-bottom:1px solid #E5E0D8}
+    .logo span{color:#FF3B00}
+    nav a{display:block;padding:.45rem 1rem;color:#888;font-size:.8125rem;text-decoration:none;transition:all .15s;border-left:2px solid transparent}
+    nav a:hover{color:#1A1A1A;background:#F7F5F2}
+    nav a.active{color:#FF3B00;border-left-color:#FF3B00;background:#fff5f3}
+    .sf{padding:.75rem 1rem;border-top:1px solid #E5E0D8;margin-top:auto}
+    .sf a{font-size:.75rem;color:#888;text-decoration:none}
+    main{flex:1;padding:2rem;max-width:900px}
+    h1{font-family:'Space Grotesk',sans-serif;font-size:1.375rem;font-weight:700;margin-bottom:.25rem;letter-spacing:-.02em}
+    .sub{color:#888;font-size:.8125rem;margin-bottom:2rem}
+    .card{background:#fff;border:1px solid #E5E0D8;border-radius:16px;padding:1.75rem;margin-bottom:1.5rem}
+    .card-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:.9375rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:.5rem}
+    .card-title::before{content:'';width:3px;height:1rem;background:#FF3B00;border-radius:2px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+    .grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.75rem}
+    .field{display:flex;flex-direction:column;gap:.375rem;margin-bottom:.75rem}
+    label{font-size:.75rem;font-weight:500;color:#666;text-transform:uppercase;letter-spacing:.06em}
+    input[type=text],input[type=url],input[type=color],select,textarea{width:100%;background:#F7F5F2;border:1.5px solid #E5E0D8;border-radius:10px;padding:.625rem .875rem;color:#1A1A1A;font-size:.875rem;font-family:inherit;outline:none;transition:border-color .2s}
+    input[type=color]{height:42px;padding:.25rem .5rem;cursor:pointer}
+    input:focus,select:focus,textarea:focus{border-color:#FF3B00}
+    textarea{resize:vertical}
+    .btn-save{padding:.75rem 2rem;background:#FF3B00;color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.875rem;border:none;border-radius:10px;cursor:pointer}
+    .btn-save:hover{background:#e03200}
+    .toast{padding:.75rem 1.25rem;border-radius:10px;margin-bottom:1.5rem;font-size:.875rem;font-weight:500}
+    .toast.ok{background:#f0fdf4;border:1px solid #86efac;color:#166534}
+    .toast.err{background:#fef2f2;border:1px solid #fca5a5;color:#991b1b}
+    .hint{font-size:.7rem;color:#aaa;margin-top:.2rem}
+  </style>
+</head><body>
+<aside>
+  <div class="logo">Mash<span>urban</span></div>
+  <nav>
+    <a href="/admin">Dashboard</a><a href="/admin/header">Header</a><a href="/admin/hero">Hero</a>
+    <a href="/admin/story" class="active">Story</a><a href="/admin/services">Services</a>
+    <a href="/admin/packages">Packages</a><a href="/admin/portfolio">Portfolio</a>
+    <a href="/admin/testimonials">Testimonials</a><a href="/admin/orders">Orders</a>
+    <a href="/admin/leads">Leads</a><a href="/admin/blog">Blog</a>
+    <a href="/admin/seo">SEO</a><a href="/admin/media">Media</a><a href="/admin/settings">Settings</a>
+  </nav>
+  <div class="sf"><a href="/">← View site</a></div>
+</aside>
+<main>
+  <h1>Story Section</h1>
+  <p class="sub">Controls the "Our story" section — narrative, pull quote, stats, author, colors</p>
+  {saved && <div class="toast ok">✓ Story saved!</div>}
+  {error && <div class="toast err">⚠ {error}</div>}
+  <form method="POST">
+    <div class="card">
+      <div class="card-title">Section Label & Heading</div>
+      <div class="grid2">
+        <div class="field"><label>Section Label</label><input type="text" name="section_label" value={c.section_label ?? '03 — Our story'}/></div>
+        <div class="field"><label>Section Heading</label><input type="text" name="headline" value={c.headline ?? 'Why Mashurban exists'}/></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Content</div>
+      <div class="field">
+        <label>Pull Quote (large bold text)</label>
+        <textarea name="pull_quote" rows="2">{c.pull_quote ?? 'Your brand deserves better than templates and jargon.'}</textarea>
+      </div>
+      <div class="field">
+        <label>Body Text (separate paragraphs with blank line)</label>
+        <textarea name="body" rows="8">{c.body ?? 'We got tired of agencies that charged a fortune and delivered generic.\n\nSo we built Mashurban — a studio that does everything a growing brand needs, without the fluff.\n\nWe\'re builders, not account managers. We obsess over your numbers the same way we obsess over ours.'}</textarea>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Author</div>
+      <div class="grid2">
+        <div class="field"><label>Author Name</label><input type="text" name="author" value={c.author ?? 'Founder, Mashurban'}/></div>
+        <div class="field"><label>Author Role / Subtitle</label><input type="text" name="author_role" value={c.author_role ?? 'Builder · Designer · Strategist'}/></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Author Photo URL</label><input type="text" name="photo_url" value={c.photo_url ?? ''} placeholder="https://... or /images/founder.jpg"/></div>
+        <div class="field"><label>Video URL (optional)</label><input type="text" name="video_url" value={c.video_url ?? ''} placeholder="YouTube/Vimeo embed URL"/></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Stats (4 boxes)</div>
+      <div class="grid4">
+        <div class="field"><label>Stat 1 Number</label><input type="text" name="stat1_num" value={c.stat1_num ?? '25+'}/></div>
+        <div class="field"><label>Stat 1 Label</label><input type="text" name="stat1_label" value={c.stat1_label ?? 'Brands Built'}/></div>
+        <div class="field"><label>Stat 2 Number</label><input type="text" name="stat2_num" value={c.stat2_num ?? '₹50L+'}/></div>
+        <div class="field"><label>Stat 2 Label</label><input type="text" name="stat2_label" value={c.stat2_label ?? 'Ad Spend Managed'}/></div>
+        <div class="field"><label>Stat 3 Number</label><input type="text" name="stat3_num" value={c.stat3_num ?? '3×'}/></div>
+        <div class="field"><label>Stat 3 Label</label><input type="text" name="stat3_label" value={c.stat3_label ?? 'Average ROAS'}/></div>
+        <div class="field"><label>Stat 4 Number</label><input type="text" name="stat4_num" value={c.stat4_num ?? '8'}/></div>
+        <div class="field"><label>Stat 4 Label</label><input type="text" name="stat4_label" value={c.stat4_label ?? 'Cities Served'}/></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Section Colors</div>
+      <div class="grid4">
+        <div class="field"><label>Background</label><input type="color" name="bg_color" value={c.bg_color ?? '#ffffff'}/></div>
+        <div class="field"><label>Heading Color</label><input type="color" name="heading_color" value={c.heading_color ?? '#1A1A1A'}/></div>
+        <div class="field"><label>Body Text Color</label><input type="color" name="text_color" value={c.text_color ?? '#555555'}/></div>
+        <div class="field"><label>Accent Color</label><input type="color" name="accent_color" value={c.accent_color ?? '#FF3B00'}/></div>
+      </div>
+    </div>
+    <button type="submit" class="btn-save">Save Story →</button>
+  </form>
+</main>
+</body></html>

@@ -1,0 +1,91 @@
+---
+// src/components/sections/Testimonials.astro
+// Fetches live testimonials from Supabase `testimonials` table — managed via admin panel.
+import { supabaseAdmin } from '@/lib/supabase';
+
+interface Testimonial {
+  id: string;
+  client_name: string;
+  brand_name: string | null;
+  designation: string | null;
+  quote: string;
+  photo_url: string | null;
+  rating: number;
+  service_type: string | null;
+}
+
+let testimonials: Testimonial[] = [];
+try {
+  const { data } = await supabaseAdmin
+    .from('testimonials')
+    .select('id, client_name, brand_name, designation, quote, photo_url, rating, service_type')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true });
+  if (data) testimonials = data as Testimonial[];
+} catch {}
+
+// Fallback defaults
+if (!testimonials.length) {
+  testimonials = [
+    { id: '1', client_name: 'Aryan Kapoor',  brand_name: 'UrbanFit Apparel · Mumbai',   designation: 'Founder', quote: 'Mashurban rebuilt our website and ran our Meta ads for 45 days. We tripled our online leads. I wish we had found them two years earlier.', photo_url: null, rating: 5, service_type: 'Website + Meta Ads' },
+    { id: '2', client_name: 'Priya Sharma',  brand_name: 'Chai Republic · Delhi',       designation: 'Co-Founder', quote: 'The merch they designed for us sold out in 6 days. The brand kit they made is something we will use for the next decade.',             photo_url: null, rating: 5, service_type: 'Merch + Branding' },
+    { id: '3', client_name: 'Rohan Verma',   brand_name: 'Voltex EV · Bengaluru',       designation: 'CEO', quote: 'Our Google Ads ROAS went from 1.2× to 4.8× in 60 days. These guys actually understand performance marketing.',                              photo_url: null, rating: 5, service_type: 'Google Ads' },
+  ];
+}
+
+function initials(name: string) {
+  return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+}
+---
+
+<section id="testimonials" class="bg-white py-24 px-6 md:px-12">
+  <div class="max-w-7xl mx-auto">
+    <div class="section-label reveal">05 — What clients say</div>
+
+    <h2 class="font-heading font-bold text-[clamp(36px,6vw,72px)] leading-[0.95] text-[#1A1A1A] mb-16 reveal">
+      Real words.<br/>Real results.
+    </h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 reveal">
+      {testimonials.map(t => (
+        <div class="bg-[#F7F5F2] border border-[#E5E0D8] rounded-2xl p-8 flex flex-col hover:shadow-lg hover:border-[#FF3B00] transition-all duration-300">
+          <!-- Stars -->
+          <div class="flex gap-1 mb-6">
+            {Array.from({ length: t.rating }).map(() => (
+              <span class="text-[#FF3B00] text-sm">★</span>
+            ))}
+          </div>
+
+          <!-- Quote -->
+          <blockquote class="text-base text-[#1A1A1A] leading-[1.8] mb-8 flex-1 font-light">
+            "{t.quote}"
+          </blockquote>
+
+          <!-- Service tag -->
+          {t.service_type && (
+            <div class="mb-5">
+              <span class="inline-block text-[10px] tracking-[0.16em] uppercase bg-[#FF3B00]/10 text-[#FF3B00] px-3 py-1 rounded-full font-bold">
+                {t.service_type}
+              </span>
+            </div>
+          )}
+
+          <!-- Author -->
+          <div class="flex items-center gap-3 border-t border-[#E5E0D8] pt-5">
+            {t.photo_url ? (
+              <img src={t.photo_url} alt={t.client_name} class="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+            ) : (
+              <div class="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center font-heading font-bold text-sm text-white flex-shrink-0">
+                {initials(t.client_name)}
+              </div>
+            )}
+            <div>
+              <div class="text-sm font-bold text-[#1A1A1A]">{t.client_name}</div>
+              <div class="text-xs text-[#888] mt-0.5">{t.brand_name}</div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

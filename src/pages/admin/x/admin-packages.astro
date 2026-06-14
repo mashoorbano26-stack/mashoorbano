@@ -1,0 +1,164 @@
+---
+// src/pages/admin/packages.astro — full CRUD for packages table
+export const prerender = false;
+import { makeServerClient, supabaseAdmin } from '@/lib/supabase';
+const supabase = makeServerClient(Astro.cookies);
+const { data: { session } } = await supabase.auth.getSession();
+if (!session) return Astro.redirect('/admin/login');
+
+let saved = false; let error = '';
+const action = (await (Astro.request.method === 'POST' ? Astro.request.formData() : Promise.resolve(null)));
+
+if (action) {
+  const act = action.get('_action')?.toString();
+  if (act === 'save') {
+    const id   = action.get('id')?.toString();
+    const pkg  = {
+      name:     action.get('name')?.toString() ?? '',
+      tagline:  action.get('tagline')?.toString() ?? '',
+      price_inr: parseFloat(action.get('price_inr')?.toString() ?? '0'),
+      price_usd: parseFloat(action.get('price_usd')?.toString() ?? '0') || null,
+      features:  (action.get('features')?.toString() ?? '').split('\n').map(f=>f.trim()).filter(Boolean),
+      is_popular: action.get('is_popular') === 'on',
+      is_active:  action.get('is_active') !== 'off',
+      sort_order: parseInt(action.get('sort_order')?.toString() ?? '0'),
+    };
+    if (id) {
+      const { error: e } = await supabaseAdmin.from('packages').update(pkg).eq('id', id);
+      if (e) error = e.message; else saved = true;
+    } else {
+      const { error: e } = await supabaseAdmin.from('packages').insert(pkg);
+      if (e) error = e.message; else saved = true;
+    }
+  }
+  if (act === 'delete') {
+    const id = action.get('id')?.toString();
+    if (id) { const { error: e } = await supabaseAdmin.from('packages').update({ is_active: false }).eq('id', id); if (e) error = e.message; else saved = true; }
+  }
+}
+
+const { data: packages } = await supabaseAdmin.from('packages').select('*').order('sort_order');
+const pkgs = packages ?? [];
+---
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Packages — Mashurban Admin</title><meta name="robots" content="noindex,nofollow"/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:#F7F5F2;color:#1A1A1A;font-family:Inter,sans-serif;min-height:100vh;display:flex}
+    aside{width:220px;min-height:100vh;background:#fff;border-right:1px solid #E5E0D8;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
+    .logo{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;padding:1.25rem 1rem;border-bottom:1px solid #E5E0D8}
+    .logo span{color:#FF3B00}
+    nav a{display:block;padding:.45rem 1rem;color:#888;font-size:.8125rem;text-decoration:none;border-left:2px solid transparent;transition:all .15s}
+    nav a:hover{color:#1A1A1A;background:#F7F5F2}
+    nav a.active{color:#FF3B00;border-left-color:#FF3B00;background:#fff5f3}
+    .sf{padding:.75rem 1rem;border-top:1px solid #E5E0D8;margin-top:auto}
+    .sf a{font-size:.75rem;color:#888;text-decoration:none}
+    main{flex:1;padding:2rem;max-width:960px}
+    h1{font-family:'Space Grotesk',sans-serif;font-size:1.375rem;font-weight:700;margin-bottom:.25rem;letter-spacing:-.02em}
+    .sub{color:#888;font-size:.8125rem;margin-bottom:2rem}
+    .top-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem}
+    .btn-add{padding:.6rem 1.25rem;background:#FF3B00;color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.8125rem;border:none;border-radius:10px;cursor:pointer}
+    .card{background:#fff;border:1px solid #E5E0D8;border-radius:16px;padding:1.5rem;margin-bottom:1rem}
+    .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+    .pkg-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem}
+    .badge{font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.2rem .6rem;border-radius:999px}
+    .badge-popular{background:#fff5f3;color:#FF3B00;border:1px solid #ffd5c8}
+    .badge-inactive{background:#f3f4f6;color:#888;border:1px solid #e5e7eb}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+    .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem}
+    .field{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.5rem}
+    label{font-size:.7rem;font-weight:500;color:#666;text-transform:uppercase;letter-spacing:.06em}
+    input[type=text],input[type=number],textarea{width:100%;background:#F7F5F2;border:1.5px solid #E5E0D8;border-radius:8px;padding:.5rem .75rem;color:#1A1A1A;font-size:.8125rem;font-family:inherit;outline:none;transition:border-color .2s}
+    input:focus,textarea:focus{border-color:#FF3B00}
+    textarea{resize:vertical;min-height:120px}
+    .checks{display:flex;gap:1rem;margin-top:.25rem}
+    .check-label{display:flex;align-items:center;gap:.375rem;font-size:.8125rem;color:#555;cursor:pointer}
+    input[type=checkbox]{accent-color:#FF3B00;width:15px;height:15px}
+    .btn-row{display:flex;gap:.5rem;margin-top:1rem}
+    .btn-save{padding:.55rem 1.25rem;background:#FF3B00;color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.8125rem;border:none;border-radius:8px;cursor:pointer}
+    .btn-del{padding:.55rem 1rem;background:#fff;color:#888;border:1px solid #E5E0D8;border-radius:8px;font-size:.8125rem;cursor:pointer}
+    .btn-del:hover{border-color:#ef4444;color:#ef4444}
+    .toast{padding:.75rem 1.25rem;border-radius:10px;margin-bottom:1.5rem;font-size:.875rem;font-weight:500}
+    .toast.ok{background:#f0fdf4;border:1px solid #86efac;color:#166534}
+    .toast.err{background:#fef2f2;border:1px solid #fca5a5;color:#991b1b}
+    details summary{cursor:pointer;list-style:none;user-select:none}
+    details summary::after{content:' ▼';font-size:.7rem;color:#888}
+    details[open] summary::after{content:' ▲'}
+    .hint{font-size:.7rem;color:#aaa;margin-top:.2rem}
+    .new-form{background:#fff5f3;border:1.5px dashed #FF3B00;border-radius:16px;padding:1.5rem;margin-bottom:1.5rem}
+    .new-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.9375rem;color:#FF3B00;margin-bottom:1rem}
+  </style>
+</head><body>
+<aside>
+  <div class="logo">Mash<span>urban</span></div>
+  <nav>
+    <a href="/admin">Dashboard</a><a href="/admin/hero">Hero</a><a href="/admin/story">Story</a>
+    <a href="/admin/services">Services</a><a href="/admin/packages" class="active">Packages</a>
+    <a href="/admin/portfolio">Portfolio</a><a href="/admin/testimonials">Testimonials</a>
+    <a href="/admin/orders">Orders</a><a href="/admin/leads">Leads</a>
+    <a href="/admin/blog">Blog</a><a href="/admin/seo">SEO</a>
+    <a href="/admin/media">Media</a><a href="/admin/settings">Settings</a>
+  </nav>
+  <div class="sf"><a href="/">← View site</a></div>
+</aside>
+<main>
+  <h1>Packages</h1>
+  <p class="sub">Add, edit, or deactivate pricing packages — changes reflect live on the website</p>
+  {saved && <div class="toast ok">✓ Package saved!</div>}
+  {error && <div class="toast err">⚠ {error}</div>}
+
+  <!-- Add new package -->
+  <div class="new-form">
+    <div class="new-title">+ Add New Package</div>
+    <form method="POST">
+      <input type="hidden" name="_action" value="save"/>
+      <div class="grid2">
+        <div class="field"><label>Package Name</label><input type="text" name="name" placeholder="e.g. Starter"/></div>
+        <div class="field"><label>Tagline</label><input type="text" name="tagline" placeholder="Perfect for new brands"/></div>
+        <div class="field"><label>Price (INR ₹)</label><input type="number" name="price_inr" placeholder="29999"/></div>
+        <div class="field"><label>Price (USD $)</label><input type="number" name="price_usd" placeholder="360"/></div>
+        <div class="field"><label>Sort Order</label><input type="number" name="sort_order" value="0"/></div>
+      </div>
+      <div class="field"><label>Features (one per line)</label><textarea name="features" rows="6" placeholder="5-page website&#10;Mobile responsive&#10;Basic SEO setup&#10;1 month support"></textarea><span class="hint">Each line = one feature bullet on the website</span></div>
+      <div class="checks"><label class="check-label"><input type="checkbox" name="is_popular"/> Mark as "Most Popular"</label><label class="check-label"><input type="checkbox" name="is_active" checked/> Active (show on site)</label></div>
+      <div class="btn-row"><button type="submit" class="btn-save">Add Package</button></div>
+    </form>
+  </div>
+
+  <!-- Existing packages -->
+  {pkgs.map((pkg: any) => (
+    <div class="card">
+      <details>
+        <summary>
+          <div class="card-header" style="display:inline-flex;width:calc(100% - 1rem);align-items:center;justify-content:space-between">
+            <span class="pkg-name">{pkg.name} — ₹{Number(pkg.price_inr).toLocaleString('en-IN')}</span>
+            <div style="display:flex;gap:.5rem">
+              {pkg.is_popular && <span class="badge badge-popular">★ Popular</span>}
+              {!pkg.is_active && <span class="badge badge-inactive">Inactive</span>}
+            </div>
+          </div>
+        </summary>
+        <form method="POST" style="margin-top:1rem">
+          <input type="hidden" name="_action" value="save"/>
+          <input type="hidden" name="id" value={pkg.id}/>
+          <div class="grid2">
+            <div class="field"><label>Package Name</label><input type="text" name="name" value={pkg.name}/></div>
+            <div class="field"><label>Tagline</label><input type="text" name="tagline" value={pkg.tagline ?? ''}/></div>
+            <div class="field"><label>Price (INR ₹)</label><input type="number" name="price_inr" value={pkg.price_inr}/></div>
+            <div class="field"><label>Price (USD $)</label><input type="number" name="price_usd" value={pkg.price_usd ?? ''}/></div>
+            <div class="field"><label>Sort Order</label><input type="number" name="sort_order" value={pkg.sort_order ?? 0}/></div>
+          </div>
+          <div class="field"><label>Features (one per line)</label><textarea name="features" rows="8">{Array.isArray(pkg.features) ? pkg.features.join('\n') : ''}</textarea></div>
+          <div class="checks"><label class="check-label"><input type="checkbox" name="is_popular" checked={pkg.is_popular}/> Mark as "Most Popular"</label><label class="check-label"><input type="checkbox" name="is_active" checked={pkg.is_active}/> Active</label></div>
+          <div class="btn-row">
+            <button type="submit" class="btn-save">Save Changes</button>
+            <button type="submit" name="_action" value="delete" class="btn-del" onclick="return confirm('Deactivate this package?')">Deactivate</button>
+          </div>
+        </form>
+      </details>
+    </div>
+  ))}
+</main>
+</body></html>

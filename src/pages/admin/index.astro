@@ -1,0 +1,158 @@
+---
+// src/pages/admin/index.astro
+export const prerender = false;
+import { makeServerClient, supabaseAdmin } from '@/lib/supabase';
+
+const supabase = makeServerClient(Astro.cookies);
+const { data: { session } } = await supabase.auth.getSession();
+if (!session) return Astro.redirect('/admin/login');
+
+// Handle logout
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  if (form.get('_action') === 'logout') {
+    await supabase.auth.signOut();
+    return Astro.redirect('/admin/login');
+  }
+}
+
+// Fetch dashboard stats
+let stats = { orders: 0, revenue: 0, leads: 0, packages: 0 };
+try {
+  const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const since7d  = new Date(Date.now() -  7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const [ordersRes, leadsRes, pkgRes] = await Promise.all([
+    supabaseAdmin.from('orders').select('total').eq('status','paid').gte('created_at', since30d),
+    supabaseAdmin.from('leads').select('id', { count: 'exact' }).gte('created_at', since7d),
+    supabaseAdmin.from('packages').select('id', { count: 'exact' }).eq('is_active', true),
+  ]);
+
+  stats.orders  = ordersRes.data?.length ?? 0;
+  stats.revenue = ordersRes.data?.reduce((s, o) => s + (Number(o.total) || 0), 0) ?? 0;
+  stats.leads   = leadsRes.count ?? 0;
+  stats.packages = pkgRes.count ?? 0;
+} catch {}
+
+const userEmail = session.user.email ?? '';
+function formatINR(n: number) { return '₹' + n.toLocaleString('en-IN'); }
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — Mashurban</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:#F7F5F2;color:#1A1A1A;font-family:Inter,sans-serif;min-height:100vh;display:flex}
+
+    /* Sidebar */
+    aside{width:240px;min-height:100vh;background:#fff;border-right:1px solid #E5E0D8;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+    .sidebar-logo{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.125rem;padding:1.5rem 1.25rem 1rem;border-bottom:1px solid #E5E0D8;color:#1A1A1A}
+    .sidebar-logo span{color:#FF3B00}
+    nav{flex:1;padding:.75rem 0}
+    nav a{display:flex;align-items:center;gap:.625rem;padding:.5rem 1.25rem;color:#888;font-size:.875rem;text-decoration:none;transition:all .15s;border-left:2px solid transparent;margin:.1rem 0}
+    nav a:hover{color:#1A1A1A;background:#F7F5F2}
+    nav a.active{color:#FF3B00;border-left-color:#FF3B00;background:#fff5f3}
+    .sidebar-footer{padding:1rem 1.25rem;border-top:1px solid #E5E0D8}
+    .sidebar-email{font-size:.75rem;color:#888;margin-bottom:.5rem;overflow:hidden;text-overflow:ellipsis}
+    .logout-btn{width:100%;padding:.5rem;background:transparent;border:1px solid #E5E0D8;color:#888;border-radius:8px;font-size:.8125rem;cursor:pointer;transition:all .15s;font-family:inherit}
+    .logout-btn:hover{border-color:#FF3B00;color:#FF3B00}
+
+    /* Main */
+    main{flex:1;padding:2rem;overflow-y:auto}
+    h1{font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:700;margin-bottom:.25rem;letter-spacing:-.02em}
+    .sub{color:#888;font-size:.875rem;margin-bottom:2rem}
+
+    /* Stats */
+    .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;margin-bottom:2rem}
+    .stat-card{background:#fff;border:1px solid #E5E0D8;border-radius:16px;padding:1.25rem;transition:box-shadow .2s}
+    .stat-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.07)}
+    .stat-label{font-size:.75rem;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem}
+    .stat-value{font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:700;color:#1A1A1A}
+    .stat-accent{color:#FF3B00}
+
+    /* Module grid */
+    .module-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem}
+    .module-card{background:#fff;border:1px solid #E5E0D8;border-radius:14px;padding:1rem 1.25rem;text-decoration:none;color:#555;font-size:.875rem;transition:all .2s;display:block}
+    .module-card:hover{border-color:#FF3B00;color:#1A1A1A;box-shadow:0 4px 16px rgba(255,59,0,.08)}
+    .module-card strong{display:block;color:#1A1A1A;font-size:.9375rem;margin-bottom:.25rem;font-family:'Space Grotesk',sans-serif}
+    .section-head{font-family:'Space Grotesk',sans-serif;font-size:.875rem;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem}
+  </style>
+</head>
+<body>
+
+<aside>
+  <div class="sidebar-logo">Mash<span>urban</span></div>
+  <nav>
+    <a href="/admin" class="active">Dashboard</a>
+    <a href="/admin/header">Header</a>
+    <a href="/admin/hero">Hero</a>
+    <a href="/admin/story">Story</a>
+    <a href="/admin/services">Services</a>
+    <a href="/admin/packages">Packages</a>
+    <a href="/admin/portfolio">Portfolio</a>
+    <a href="/admin/testimonials">Testimonials</a>
+    <a href="/admin/orders">Orders</a>
+    <a href="/admin/leads">Leads</a>
+    <a href="/admin/blog">Blog</a>
+    <a href="/admin/seo">SEO</a>
+    <a href="/admin/media">Media</a>
+    <a href="/admin/settings">Settings</a>
+  </nav>
+  <div class="sidebar-footer">
+    <p class="sidebar-email">{userEmail}</p>
+    <form method="POST">
+      <input type="hidden" name="_action" value="logout" />
+      <button class="logout-btn" type="submit">Sign out</button>
+    </form>
+  </div>
+</aside>
+
+<main>
+  <h1>Dashboard</h1>
+  <p class="sub">Welcome back. Here's what's happening with Mashurban.</p>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">Orders (30d)</div>
+      <div class="stat-value stat-accent">{stats.orders}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Revenue (30d)</div>
+      <div class="stat-value stat-accent">{formatINR(stats.revenue)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">New Leads (7d)</div>
+      <div class="stat-value stat-accent">{stats.leads}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Active Packages</div>
+      <div class="stat-value stat-accent">{stats.packages}</div>
+    </div>
+  </div>
+
+  <p class="section-head">Manage</p>
+  <div class="module-grid">
+    <a class="module-card" href="/admin/header"><strong>Header</strong>Logo, navbar, menu items</a>
+    <a class="module-card" href="/admin/hero"><strong>Hero</strong>Headline, background, CTAs</a>
+    <a class="module-card" href="/admin/story"><strong>Story</strong>Brand narrative section</a>
+    <a class="module-card" href="/admin/services"><strong>Services</strong>Service cards + icons</a>
+    <a class="module-card" href="/admin/packages"><strong>Packages</strong>Pricing + features</a>
+    <a class="module-card" href="/admin/portfolio"><strong>Portfolio</strong>Work + case studies</a>
+    <a class="module-card" href="/admin/testimonials"><strong>Testimonials</strong>Client reviews</a>
+    <a class="module-card" href="/admin/orders"><strong>Orders</strong>Payments + status</a>
+    <a class="module-card" href="/admin/leads"><strong>Leads</strong>Contact form submissions</a>
+    <a class="module-card" href="/admin/blog"><strong>Blog</strong>Posts + drafts</a>
+    <a class="module-card" href="/admin/seo"><strong>SEO</strong>Meta tags + JSON-LD</a>
+    <a class="module-card" href="/admin/media"><strong>Media</strong>Image + file library</a>
+    <a class="module-card" href="/admin/settings"><strong>Settings</strong>Business info + socials</a>
+  </div>
+</main>
+
+</body>
+</html>

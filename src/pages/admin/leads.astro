@@ -1,0 +1,108 @@
+---
+// src/pages/admin/leads.astro
+export const prerender = false;
+import { makeServerClient, supabaseAdmin } from '@/lib/supabase';
+const supabase = makeServerClient(Astro.cookies);
+const { data: { session } } = await supabase.auth.getSession();
+if (!session) return Astro.redirect('/admin/login');
+
+let saved = false;
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  if (f.get('_action') === 'update') {
+    await supabaseAdmin.from('leads').update({ status: f.get('status')?.toString(), admin_notes: f.get('notes')?.toString() }).eq('id', f.get('id')?.toString());
+    saved = true;
+  }
+}
+
+const statusFilter = Astro.url.searchParams.get('status') ?? '';
+let query = supabaseAdmin.from('leads').select('*').order('created_at', { ascending: false }).limit(100);
+if (statusFilter) query = query.eq('status', statusFilter);
+const { data: leads } = await query;
+const rows = leads ?? [];
+const STATUS_COLORS: Record<string,string> = { new:'#3b82f6', contacted:'#f59e0b', converted:'#10b981', lost:'#ef4444' };
+---
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Leads — Mashurban Admin</title><meta name="robots" content="noindex,nofollow"/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:#F7F5F2;color:#1A1A1A;font-family:Inter,sans-serif;min-height:100vh;display:flex}
+    aside{width:220px;min-height:100vh;background:#fff;border-right:1px solid #E5E0D8;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
+    .logo{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;padding:1.25rem 1rem;border-bottom:1px solid #E5E0D8}
+    .logo span{color:#FF3B00}
+    nav a{display:block;padding:.45rem 1rem;color:#888;font-size:.8125rem;text-decoration:none;border-left:2px solid transparent;transition:all .15s}
+    nav a:hover{color:#1A1A1A;background:#F7F5F2}
+    nav a.active{color:#FF3B00;border-left-color:#FF3B00;background:#fff5f3}
+    .sf{padding:.75rem 1rem;border-top:1px solid #E5E0D8;margin-top:auto}
+    .sf a{font-size:.75rem;color:#888;text-decoration:none}
+    main{flex:1;padding:2rem}
+    h1{font-family:'Space Grotesk',sans-serif;font-size:1.375rem;font-weight:700;margin-bottom:.25rem}
+    .sub{color:#888;font-size:.8125rem;margin-bottom:1.5rem}
+    .filters{display:flex;gap:.5rem;margin-bottom:1.5rem}
+    .filter-btn{padding:.375rem .875rem;border-radius:999px;font-size:.75rem;font-weight:600;text-decoration:none;border:1.5px solid #E5E0D8;color:#555;transition:all .15s}
+    .filter-btn:hover,.filter-btn.active{border-color:#FF3B00;color:#FF3B00;background:#fff5f3}
+    .lead-card{background:#fff;border:1px solid #E5E0D8;border-radius:14px;padding:1.25rem;margin-bottom:.75rem}
+    .lead-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem}
+    .lead-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.9375rem}
+    .lead-meta{font-size:.75rem;color:#888;margin-top:.125rem}
+    .badge{display:inline-block;padding:.2rem .625rem;border-radius:999px;font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+    .lead-body{display:grid;grid-template-columns:1fr 1fr auto;gap:.75rem;align-items:start}
+    .field label{font-size:.7rem;font-weight:500;color:#666;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:.25rem}
+    select,textarea{background:#F7F5F2;border:1.5px solid #E5E0D8;border-radius:8px;padding:.4rem .6rem;font-size:.8125rem;font-family:inherit;outline:none;width:100%}
+    select:focus,textarea:focus{border-color:#FF3B00}
+    textarea{resize:vertical;min-height:60px}
+    .btn-upd{padding:.5rem 1rem;background:#FF3B00;color:#fff;border:none;border-radius:8px;font-size:.75rem;cursor:pointer;font-weight:600;white-space:nowrap}
+    .msg-box{font-size:.8125rem;color:#555;background:#F7F5F2;border-radius:8px;padding:.5rem .75rem;margin-top:.5rem;font-style:italic}
+    .toast{padding:.75rem 1.25rem;border-radius:10px;margin-bottom:1rem;font-size:.875rem;font-weight:500}
+    .toast.ok{background:#f0fdf4;border:1px solid #86efac;color:#166534}
+    .empty{text-align:center;padding:3rem;color:#888}
+  </style>
+</head><body>
+<aside>
+  <div class="logo">Mash<span>urban</span></div>
+  <nav>
+    <a href="/admin">Dashboard</a><a href="/admin/header">Header</a><a href="/admin/hero">Hero</a><a href="/admin/story">Story</a>
+    <a href="/admin/services">Services</a><a href="/admin/packages">Packages</a>
+    <a href="/admin/portfolio">Portfolio</a><a href="/admin/testimonials">Testimonials</a>
+    <a href="/admin/orders">Orders</a><a href="/admin/leads" class="active">Leads</a>
+    <a href="/admin/blog">Blog</a><a href="/admin/seo">SEO</a>
+    <a href="/admin/media">Media</a><a href="/admin/settings">Settings</a>
+  </nav>
+  <div class="sf"><a href="/">← View site</a></div>
+</aside>
+<main>
+  <h1>Leads</h1>
+  <p class="sub">Contact form submissions — update status and add notes</p>
+  {saved && <div class="toast ok">✓ Lead updated!</div>}
+  <div class="filters">
+    <a href="/admin/leads" class={`filter-btn ${!statusFilter ? 'active':''}`}>All</a>
+    {['new','contacted','converted','lost'].map(s => (
+      <a href={`/admin/leads?status=${s}`} class={`filter-btn ${statusFilter===s?'active':''}`}>{s}</a>
+    ))}
+  </div>
+  {rows.length === 0 && <div class="empty">No leads yet</div>}
+  {rows.map((l: any) => (
+    <div class="lead-card">
+      <div class="lead-top">
+        <div>
+          <div class="lead-name">{l.name}</div>
+          <div class="lead-meta">{l.email ?? l.phone} · {l.service_interest ?? 'General'} · {new Date(l.created_at).toLocaleDateString('en-IN')}</div>
+        </div>
+        <span class="badge" style={`background:${STATUS_COLORS[l.status]??'#888'}22;color:${STATUS_COLORS[l.status]??'#888'};border:1px solid ${STATUS_COLORS[l.status]??'#888'}44`}>{l.status}</span>
+      </div>
+      {l.message && <div class="msg-box">"{l.message}"</div>}
+      <form method="POST" style="margin-top:.75rem">
+        <input type="hidden" name="_action" value="update"/>
+        <input type="hidden" name="id" value={l.id}/>
+        <div class="lead-body">
+          <div class="field"><label>Status</label><select name="status"><option value="new" selected={l.status==='new'}>New</option><option value="contacted" selected={l.status==='contacted'}>Contacted</option><option value="converted" selected={l.status==='converted'}>Converted</option><option value="lost" selected={l.status==='lost'}>Lost</option></select></div>
+          <div class="field"><label>Admin Notes</label><textarea name="notes">{l.admin_notes ?? ''}</textarea></div>
+          <div style="padding-top:1.25rem"><button type="submit" class="btn-upd">Save</button></div>
+        </div>
+      </form>
+    </div>
+  ))}
+</main>
+</body></html>

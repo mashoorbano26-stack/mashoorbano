@@ -1,0 +1,58 @@
+/* src/styles/global.css */
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/space-grotesk/700.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body { @apply bg-[#F7F5F2] text-[#1A1A1A] font-body; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  ::selection { background: #FF3B00; color: #fff; }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-[#FF3B00] text-white font-heading font-bold text-sm tracking-widest uppercase px-8 py-4 transition-all hover:bg-[#e03200] hover:shadow-lg inline-block rounded-none;
+  }
+  .btn-ghost {
+    @apply border border-[#D4CFC8] text-[#1A1A1A] font-heading font-bold text-sm tracking-widest uppercase px-8 py-4 transition-colors hover:border-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-white inline-block;
+  }
+  .section-label {
+    @apply text-xs font-medium tracking-[0.2em] uppercase text-[#999] flex items-center gap-4 mb-16;
+  }
+  .section-label::after {
+    content: '';
+    @apply flex-1 h-px bg-[#E5E0D8];
+  }
+  /* Light card */
+  .card-light {
+    @apply bg-white border border-[#E5E0D8] rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow;
+  }
+}
+
+/* Marquee animation */
+@keyframes marquee { to { transform: translateX(-50%); } }
+.animate-marquee { animation: marquee 30s linear infinite; display: inline-block; }
+
+/* Scroll reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1);
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+
+/* Custom cursor */
+#g-dot {
+  position: fixed; width: 10px; height: 10px; background: #FF3B00;
+  border-radius: 50%; pointer-events: none; z-index: 99999;
+  transform: translate(-50%,-50%); transition: width .15s, height .15s;
+  left: -30px; top: -30px; mix-blend-mode: multiply;
+}

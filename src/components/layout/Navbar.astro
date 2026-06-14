@@ -1,0 +1,145 @@
+---
+// src/components/layout/Navbar.astro
+// Reads navbar config from site_content (page='settings', section='navbar')
+// Controls: logo (text/image), menu items, sizes, colours, sticky, CTA
+import { supabaseAdmin } from '@/lib/supabase';
+
+interface NavContent { [key: string]: any; }
+let c: NavContent = {};
+try {
+  const { data } = await supabaseAdmin
+    .from('site_content')
+    .select('content')
+    .eq('page', 'settings')
+    .eq('section', 'navbar')
+    .single();
+  if (data?.content) c = data.content;
+} catch {}
+
+const logoType   = c.logo_type        ?? 'text';
+const logoText1  = c.logo_text1        ?? 'Mash';
+const logoText2  = c.logo_text2        ?? 'urban';
+const logoImg    = c.logo_image_url    ?? '';
+const logoSize   = c.logo_size         ?? '20';
+const logoColor1 = c.logo_color1       ?? '#1A1A1A';
+const logoColor2 = c.logo_color2       ?? '#FF3B00';
+const navBg      = c.navbar_bg         ?? '#F7F5F2';
+const navHeight  = c.navbar_height     ?? '20';
+const menuColor  = c.menu_color        ?? '#666666';
+const menuHover  = c.menu_hover_color  ?? '#1A1A1A';
+const menuSize   = c.menu_size         ?? '11';
+const ctaLabel   = c.cta_label         ?? 'Get Started';
+const ctaHref    = c.cta_href          ?? '/#packages';
+const ctaBg      = c.cta_bg            ?? '#FF3B00';
+const ctaText    = c.cta_text_color    ?? '#FFFFFF';
+const sticky     = (c.sticky ?? 'on') === 'on';
+
+const menuItems: Array<{label:string;href:string;sort_order:number}> =
+  (c.menu_items && c.menu_items.length)
+    ? [...c.menu_items].sort((a,b)=> (a.sort_order??0)-(b.sort_order??0))
+    : [
+        { label: 'Services', href: '/#services',  sort_order: 0 },
+        { label: 'Work',     href: '/#portfolio', sort_order: 1 },
+        { label: 'About',    href: '/#story',     sort_order: 2 },
+        { label: 'Blog',     href: '/blog',       sort_order: 3 },
+      ];
+---
+
+<nav id="navbar"
+  style={`position:${sticky ? 'fixed' : 'absolute'};top:0;left:0;right:0;z-index:50;display:flex;justify-content:space-between;align-items:center;padding-top:${navHeight}px;padding-bottom:${navHeight}px;padding-left:2rem;padding-right:2rem;background:${navBg}cc;backdrop-filter:blur(8px);border-bottom:1px solid transparent;transition:all .4s;`}>
+
+  <!-- Logo -->
+  <a href="/" style="z-index:51;text-decoration:none;display:flex;align-items:center;">
+    {logoType === 'image' && logoImg ? (
+      <img src={logoImg} alt={logoText1 + logoText2} style={`height:${parseInt(logoSize)+8}px;width:auto;display:block;`}/>
+    ) : (
+      <span style={`font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:${logoSize}px;letter-spacing:-0.02em;`}>
+        <span style={`color:${logoColor1}`}>{logoText1}</span><span style={`color:${logoColor2}`}>{logoText2}</span>
+      </span>
+    )}
+  </a>
+
+  <!-- Desktop menu -->
+  <ul class="nav-menu" style="display:flex;align-items:center;gap:2.5rem;list-style:none;position:absolute;left:50%;transform:translateX(-50%);margin:0;padding:0;">
+    {menuItems.map(item => (
+      <li>
+        <a href={item.href}
+          class="nav-link"
+          style={`font-size:${menuSize}px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:${menuColor};text-decoration:none;transition:color .2s;`}
+          onmouseover={`this.style.color='${menuHover}'`}
+          onmouseout={`this.style.color='${menuColor}'`}>
+          {item.label}
+        </a>
+      </li>
+    ))}
+  </ul>
+
+  <!-- CTA -->
+  <a href={ctaHref} class="nav-cta"
+    style={`display:inline-block;font-size:${menuSize}px;font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:.7rem 1.5rem;background:${ctaBg};color:${ctaText};text-decoration:none;transition:opacity .2s;`}
+    onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+    {ctaLabel}
+  </a>
+
+  <!-- Hamburger -->
+  <button id="hamburger" class="nav-burger" aria-label="Open menu"
+    style={`display:none;flex-direction:column;gap:5px;padding:.5rem;z-index:51;background:none;border:none;cursor:pointer;`}>
+    <span id="hb1" style={`display:block;width:24px;height:1.5px;background:${logoColor1};transition:all .3s;transform-origin:center;`}></span>
+    <span id="hb2" style={`display:block;width:24px;height:1.5px;background:${logoColor1};transition:all .3s;`}></span>
+    <span id="hb3" style={`display:block;width:16px;height:1.5px;background:${logoColor1};transition:all .3s;transform-origin:center;`}></span>
+  </button>
+</nav>
+
+<!-- Mobile menu -->
+<div id="mobileMenu" style={`position:fixed;inset:0;z-index:40;background:${navBg};display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2.5rem;transform:translateX(100%);transition:transform .5s;`}>
+  {menuItems.map(item => (
+    <a href={item.href} class="m-link" style={`font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:clamp(2rem,9vw,3.25rem);color:${logoColor1};text-decoration:none;letter-spacing:-.02em;`}>{item.label}</a>
+  ))}
+  <a href={ctaHref} class="m-link" style={`margin-top:1rem;padding:.9rem 2.25rem;background:${ctaBg};color:${ctaText};font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.8125rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;`}>{ctaLabel}</a>
+</div>
+
+<style>
+  @media (max-width: 880px) {
+    .nav-menu, .nav-cta { display: none !important; }
+    .nav-burger { display: flex !important; }
+  }
+</style>
+
+<script define:vars={{ navBg }}>
+  const navbar = document.getElementById('navbar');
+  const burger = document.getElementById('hamburger');
+  const menu   = document.getElementById('mobileMenu');
+  const hb1 = document.getElementById('hb1'), hb2 = document.getElementById('hb2'), hb3 = document.getElementById('hb3');
+  let open = false;
+
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 60) { navbar?.style.setProperty('border-bottom-color', 'rgba(0,0,0,0.08)'); navbar?.style.setProperty('box-shadow', '0 2px 20px rgba(0,0,0,0.04)'); }
+    else { navbar?.style.setProperty('border-bottom-color', 'transparent'); navbar?.style.setProperty('box-shadow', 'none'); }
+  });
+
+  burger?.addEventListener('click', () => {
+    open = !open;
+    if (open) {
+      menu?.style.setProperty('transform', 'translateX(0)');
+      document.body.style.overflow = 'hidden';
+      if (hb1) hb1.style.transform = 'rotate(45deg) translate(4px,4px)';
+      if (hb2) hb2.style.opacity = '0';
+      if (hb3) { hb3.style.transform = 'rotate(-45deg) translate(4px,-4px)'; hb3.style.width = '24px'; }
+    } else {
+      menu?.style.setProperty('transform', 'translateX(100%)');
+      document.body.style.overflow = '';
+      if (hb1) hb1.style.transform = '';
+      if (hb2) hb2.style.opacity = '1';
+      if (hb3) { hb3.style.transform = ''; hb3.style.width = '16px'; }
+    }
+  });
+
+  document.querySelectorAll('.m-link').forEach(l => l.addEventListener('click', () => {
+    open = false;
+    menu?.style.setProperty('transform', 'translateX(100%)');
+    document.body.style.overflow = '';
+    if (hb1) hb1.style.transform = '';
+    if (hb2) hb2.style.opacity = '1';
+    if (hb3) { hb3.style.transform = ''; hb3.style.width = '16px'; }
+  }));
+</script>

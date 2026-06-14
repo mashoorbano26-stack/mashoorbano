@@ -1,0 +1,174 @@
+---
+// src/components/sections/ContactSection.astro
+// Fetches global settings (phone/email/whatsapp) from Supabase site_content
+import { supabaseAdmin } from '@/lib/supabase';
+
+interface GlobalSettings {
+  email?: string;
+  phone?: string;
+  whatsapp?: string;
+}
+
+let settings: GlobalSettings = {};
+try {
+  const { data } = await supabaseAdmin
+    .from('site_content')
+    .select('content')
+    .eq('page', 'settings')
+    .eq('section', 'global')
+    .single();
+  if (data?.content) settings = data.content as GlobalSettings;
+} catch {}
+
+const email     = settings.email     ?? 'hello@mashurban.com';
+const phone     = settings.phone     ?? '+91 78147 18340';
+const whatsapp  = settings.whatsapp  ?? '917814718340';
+
+const services = [
+  'Website Design', 'Merchandise', 'Content Creation',
+  'Meta Ads', 'Google Ads', 'Full Stack Package', 'Brand Identity',
+];
+---
+
+<section id="contact" class="bg-[#F7F5F2] py-24 px-6 md:px-12">
+  <div class="max-w-7xl mx-auto">
+    <div class="section-label reveal">06 — Let's work</div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+
+      <!-- Left: info -->
+      <div class="reveal">
+        <h2 class="font-heading font-bold text-[clamp(40px,7vw,80px)] leading-[0.95] text-[#1A1A1A] mb-8">
+          Let's build<br/>something<br/><span class="text-[#FF3B00]">real.</span>
+        </h2>
+        <div class="space-y-4">
+          <a href={`mailto:${email}`} class="flex items-center gap-3 text-sm text-[#555] hover:text-[#FF3B00] transition-colors group">
+            <span class="w-9 h-9 rounded-xl bg-white border border-[#E5E0D8] flex items-center justify-center text-[#FF3B00] group-hover:bg-[#FF3B00] group-hover:text-white group-hover:border-[#FF3B00] transition-all flex-shrink-0">✉</span>
+            {email}
+          </a>
+          <a href={`tel:${phone.replace(/\s/g,'')}`} class="flex items-center gap-3 text-sm text-[#555] hover:text-[#FF3B00] transition-colors group">
+            <span class="w-9 h-9 rounded-xl bg-white border border-[#E5E0D8] flex items-center justify-center text-[#FF3B00] group-hover:bg-[#FF3B00] group-hover:text-white group-hover:border-[#FF3B00] transition-all flex-shrink-0">✆</span>
+            {phone}
+          </a>
+          <div class="flex items-center gap-3 text-sm text-[#555]">
+            <span class="w-9 h-9 rounded-xl bg-white border border-[#E5E0D8] flex items-center justify-center text-[#FF3B00] flex-shrink-0">◷</span>
+            Reply within 4 hours
+          </div>
+        </div>
+        <a
+          href={`https://wa.me/${whatsapp}?text=Hi! I found Mashurban and want to discuss a project.`}
+          target="_blank"
+          rel="noopener"
+          class="inline-flex items-center gap-3 mt-8 px-6 py-4 bg-[#25D366] text-white font-heading font-bold text-sm tracking-widest uppercase hover:bg-[#20b858] transition-colors rounded-xl"
+        >
+          <span>💬</span> Chat on WhatsApp
+        </a>
+      </div>
+
+      <!-- Right: form -->
+      <div class="reveal reveal-delay-1">
+        <div class="bg-white rounded-2xl border border-[#E5E0D8] p-8 shadow-sm">
+          <form id="contact-form" class="space-y-5">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium tracking-[0.12em] uppercase text-[#888] mb-2">Name</label>
+                <input
+                  type="text" name="name" required
+                  placeholder="Your name / Brand"
+                  class="w-full bg-[#F7F5F2] border border-[#E5E0D8] rounded-xl px-4 py-3 text-sm text-[#1A1A1A] placeholder-[#CCC] outline-none focus:border-[#FF3B00] focus:ring-2 focus:ring-[#FF3B00]/10 transition-all"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-medium tracking-[0.12em] uppercase text-[#888] mb-2">WhatsApp / Email</label>
+                <input
+                  type="text" name="contact" required
+                  placeholder="+91 or email"
+                  class="w-full bg-[#F7F5F2] border border-[#E5E0D8] rounded-xl px-4 py-3 text-sm text-[#1A1A1A] placeholder-[#CCC] outline-none focus:border-[#FF3B00] focus:ring-2 focus:ring-[#FF3B00]/10 transition-all"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium tracking-[0.12em] uppercase text-[#888] mb-2">Service needed</label>
+              <select
+                name="service"
+                class="w-full bg-[#F7F5F2] border border-[#E5E0D8] rounded-xl px-4 py-3 text-sm text-[#555] outline-none focus:border-[#FF3B00] focus:ring-2 focus:ring-[#FF3B00]/10 transition-all appearance-none cursor-pointer"
+              >
+                <option value="">Pick a service...</option>
+                {services.map(s => <option value={s}>{s}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium tracking-[0.12em] uppercase text-[#888] mb-2">Message (optional)</label>
+              <textarea
+                name="message" rows="4"
+                placeholder="Tell us about your brand..."
+                class="w-full bg-[#F7F5F2] border border-[#E5E0D8] rounded-xl px-4 py-3 text-sm text-[#1A1A1A] placeholder-[#CCC] outline-none focus:border-[#FF3B00] focus:ring-2 focus:ring-[#FF3B00]/10 transition-all resize-none"
+              ></textarea>
+            </div>
+
+            <button
+              type="submit"
+              class="w-full bg-[#FF3B00] text-white font-heading font-bold text-sm tracking-widest uppercase py-4 rounded-xl hover:bg-[#e03200] transition-colors flex justify-between items-center px-6 group"
+            >
+              <span>Send Message</span>
+              <span class="transition-transform group-hover:translate-x-1 group-hover:-translate-y-1">↗</span>
+            </button>
+          </form>
+
+          <div id="form-success" class="hidden text-center py-10">
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">✓</div>
+            <p class="text-[#1A1A1A] font-heading font-bold text-xl">Message sent!</p>
+            <p class="text-[#888] text-sm mt-2">We'll reply within 4 hours.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WhatsApp FAB -->
+<a
+  href={`https://wa.me/${whatsapp}`}
+  target="_blank"
+  rel="noopener"
+  class="fixed bottom-6 right-6 z-50 w-14 h-14 bg-[#25D366] rounded-full flex items-center justify-center text-2xl shadow-xl hover:scale-110 transition-transform"
+  aria-label="Chat on WhatsApp"
+>
+  💬
+</a>
+
+<script>
+  const form    = document.getElementById('contact-form') as HTMLFormElement | null;
+  const success = document.getElementById('form-success');
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+    const orig = btn.innerHTML;
+    btn.textContent = 'Sending...';
+    btn.disabled = true;
+
+    const data = Object.fromEntries(new FormData(form));
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        form.style.display = 'none';
+        success?.classList.remove('hidden');
+      } else {
+        btn.innerHTML = orig;
+        btn.disabled = false;
+        alert('Something went wrong. Please try again.');
+      }
+    } catch {
+      btn.innerHTML = orig;
+      btn.disabled = false;
+    }
+  });
+</script>

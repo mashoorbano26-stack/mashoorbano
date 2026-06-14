@@ -1,0 +1,63 @@
+---
+interface Props {
+  title: string;
+  description: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+  canonical?: string;
+  jsonLd?: object;
+  noindex?: boolean;
+  keywords?: string;
+}
+
+const {
+  title,
+  description,
+  ogTitle,
+  ogDescription,
+  ogImage = '/og/default-og.jpg',
+  canonical,
+  jsonLd,
+  noindex = false,
+  keywords,
+} = Astro.props;
+
+const siteUrl = import.meta.env.PUBLIC_SITE_URL || 'https://mashoorbano.pages.dev';
+const canonicalURL = canonical ?? Astro.url.href;
+const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
+---
+
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#0A0A0A" />
+
+<title>{title} | Mashurban</title>
+<meta name="description" content={description} />
+{keywords && <meta name="keywords" content={keywords} />}
+{noindex && <meta name="robots" content="noindex,nofollow" />}
+<link rel="canonical" href={canonicalURL} />
+
+<meta property="og:type" content="website" />
+<meta property="og:title" content={ogTitle ?? title} />
+<meta property="og:description" content={ogDescription ?? description} />
+<meta property="og:image" content={fullOgImage} />
+<meta property="og:url" content={canonicalURL} />
+<meta property="og:site_name" content="Mashurban" />
+<meta property="og:locale" content="en_IN" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={ogTitle ?? title} />
+<meta name="twitter:description" content={ogDescription ?? description} />
+<meta name="twitter:image" content={fullOgImage} />
+
+<meta name="geo.region" content="IN" />
+<meta name="geo.placename" content="India" />
+<meta name="ICBM" content="20.5937, 78.9629" />
+
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="sitemap" href="/sitemap-index.xml" />
+
+{jsonLd && (
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+)}

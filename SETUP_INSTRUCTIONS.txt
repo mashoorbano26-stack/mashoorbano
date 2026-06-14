@@ -1,0 +1,33 @@
+# MASHURBAN — Setup Instructions
+
+## Step 1: Run this in VS Code terminal (CMD) inside your mashoorbano folder
+
+npm install @astrojs/react @astrojs/tailwind @astrojs/sitemap @supabase/supabase-js @supabase/ssr nanostores @nanostores/react zod lucide-react embla-carousel-react @fontsource/inter @fontsource/space-grotesk react react-dom
+
+npm install -D sharp typescript
+
+## Step 2: Run Supabase SQL
+- Go to supabase.com → your project → SQL Editor
+- Click "New Query"
+- Open supabase/migrations/001_initial_schema.sql
+- Copy all contents, paste in SQL Editor, click Run
+
+## Step 3: Test locally
+npm run dev
+→ Open http://localhost:4321
+
+## Step 4: Push to GitHub Desktop
+- Open GitHub Desktop
+- You will see all changed files
+- Write commit message: "Initial Mashurban website"
+- Click Commit to main
+- Click Push origin
+
+## Step 5: Cloudflare auto-deploys
+- Your site will be live at https://mashoorbano.pages.dev in 2-3 minutes
+- Add these Environment Variables in Cloudflare Pages → Settings → Environment Variables:
+  PUBLIC_SUPABASE_URL = https://gsyfdmlaqolrvkatrpxd.supabase.co
+  PUBLIC_SUPABASE_ANON_KEY = (your anon key)
+  SUPABASE_SERVICE_ROLE_KEY = (your new regenerated service role key)
+  PUBLIC_WHATSAPP = 917814718340
+  PUBLIC_SITE_URL = https://mashoorbano.pages.dev
