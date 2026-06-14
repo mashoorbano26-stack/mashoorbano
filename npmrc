@@ -1,0 +1,2 @@
+# .npmrc — tells npm to ignore lock file conflicts on Cloudflare build
+legacy-peer-deps=true

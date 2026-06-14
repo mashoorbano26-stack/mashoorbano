@@ -1,0 +1,38 @@
+CLOUDFLARE DEPLOYMENT FIX — DO THIS IN ORDER:
+═══════════════════════════════════════════════
+
+The error is: package-lock.json is out of sync with the new package.json
+(Cloudflare runs `npm ci` which strictly validates the lock file)
+
+STEPS TO FIX:
+─────────────
+
+1. Copy the new package.json and .npmrc into your project root
+
+2. DELETE your existing package-lock.json from the project root
+
+3. Open terminal in your project folder and run:
+   npm install
+
+   This regenerates a fresh package-lock.json with all correct versions
+
+4. Commit and push BOTH files:
+   git add package.json package-lock.json .npmrc astro.config.mjs wrangler.toml
+   git commit -m "fix: Cloudflare deployment - pin deps, add adapter"
+   git push
+
+5. Cloudflare will auto-deploy — should succeed this time
+
+WHY THIS HAPPENED:
+──────────────────
+Your old package-lock.json had:
+  - astro@5.18.2   (but package.json said ^4)
+  - react@19.2.7   (but package.json said ^18)
+  - zod@4.4.3      (but package.json said ^3)
+  - @astrojs/cloudflare MISSING from lock
+
+`npm ci` on Cloudflare fails if ANY package in the lock file
+doesn't match what package.json specifies.
+
+Deleting the lock and running `npm install` locally creates a fresh
+lock file that exactly matches the new package.json.
