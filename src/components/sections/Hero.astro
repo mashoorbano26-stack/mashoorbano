@@ -74,6 +74,9 @@ const marqueeHoverScale = c.marquee_hover_scale ?? '1.35';
 // ── GENERAL ──
 const wordsGap     = c.words_gap        ?? 'clamp(5rem,11vw,11rem)';
 const subheadline  = c.subheadline      ?? 'Websites · Merch · Content · Meta Ads · Google Ads';
+const tagline      = c.tagline           ?? 'Making your BRAND Famous';
+const taglineColor = c.tagline_color      ?? '#FFFFFF';
+const taglineSize  = c.tagline_size       ?? 'clamp(.85rem,1.3vw,1.1rem)';
 const subOffsetX   = c.sub_offset_x     ?? '0';
 const subOffsetY   = c.sub_offset_y     ?? '0';
 const ctaPrimary   = c.cta_primary_label ?? 'See Packages';
@@ -164,6 +167,18 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
 
   <!-- Subheadline (X/Y placement) + line + CTAs -->
   <div style={`position:absolute;bottom:clamp(2.5rem,10vh,6rem);left:50%;transform:translateX(-50%);z-index:10;display:flex;flex-direction:column;align-items:center;gap:1.4rem;width:100%;padding:0 2rem;text-align:center;`}>
+    <!-- Tagline: Making your BRAND Famous — pure white, prominent -->
+    <p style={`
+      color:${taglineColor};
+      font-size:${taglineSize};
+      font-family:'Space Grotesk',sans-serif;
+      font-weight:700;
+      letter-spacing:.04em;
+      margin:0 0 .25rem;
+      opacity:1;
+      line-height:1.3;
+      text-align:center;
+    `}>{tagline}</p>
     <p style={`color:${textColor};opacity:.4;font-size:clamp(.6rem,1vw,.8125rem);letter-spacing:.18em;text-transform:uppercase;font-family:Inter,sans-serif;margin:0;line-height:1.9;transform:translate(${subOffsetX}px,${subOffsetY}px);`}>{subheadline}</p>
     <div style={`width:1px;height:30px;background:linear-gradient(to bottom,${accentColor},transparent);opacity:.6;`}></div>
     <div style="display:flex;align-items:center;gap:.875rem;flex-wrap:wrap;justify-content:center;">

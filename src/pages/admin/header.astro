@@ -27,6 +27,7 @@ if (Astro.request.method === 'POST') {
 
   const content = {
     logo_type:         get('logo_type', 'text'),
+    logo_image_size:   get('logo_image_size', '40'),
     logo_text1:        get('logo_text1', 'Mash'),
     logo_text2:        get('logo_text2', 'urban'),
     logo_image_url:    get('logo_image_url'),
@@ -151,9 +152,11 @@ const menuItems = (c.menu_items as Array<{label:string;href:string;sort_order:nu
     <div class="card">
       <div class="card-title">Logo</div>
       <div class="radio-row">
-        <label><input type="radio" name="logo_type" value="text" checked={v('logo_type','text')==='text'}/> Text logo</label>
-        <label><input type="radio" name="logo_type" value="image" checked={v('logo_type','text')==='image'}/> Image logo</label>
+        <label><input type="radio" name="logo_type" value="text"  checked={v('logo_type','text')==='text'} />  Text only</label>
+        <label><input type="radio" name="logo_type" value="image" checked={v('logo_type','text')==='image'}/> Image only</label>
+        <label><input type="radio" name="logo_type" value="both"  checked={v('logo_type','text')==='both'} />  Image + Text (both)</label>
       </div>
+      <p class="hint" style="margin-bottom:.75rem;margin-top:-.25rem">Choose how your logo appears in the navbar — image alone, text alone, or image <em>plus</em> text side by side.</p>
       <div class="grid2">
         <div class="field"><label>Logo Text — Part 1</label><input type="text" name="logo_text1" value={v('logo_text1','Mash')} placeholder="Mash"/></div>
         <div class="field"><label>Logo Text — Part 2 (coloured)</label><input type="text" name="logo_text2" value={v('logo_text2','urban')} placeholder="urban"/></div>
@@ -165,7 +168,19 @@ const menuItems = (c.menu_items as Array<{label:string;href:string;sort_order:nu
           <div class="range-row"><input type="range" name="logo_size" min="14" max="40" step="1" value={v('logo_size','20')} id="ls"/><span class="range-val" id="lsv">{v('logo_size','20')}px</span></div>
         </div>
       </div>
-      <div class="field"><label>Logo Image URL (used if "Image logo" selected)</label><input type="url" name="logo_image_url" value={v('logo_image_url','')} placeholder="https://... or /images/logo.svg"/><span class="hint">Upload via Media library, then paste the URL here</span></div>
+      <div class="field">
+        <label>Logo Image URL <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#aaa">(used when "Image only" or "Image + Text" is selected)</span></label>
+        <input type="url" name="logo_image_url" value={v('logo_image_url','')} placeholder="https://... or /images/logo.svg"/>
+        <span class="hint">Upload via Media → copy URL here. Works with .png, .svg, .jpg, .webp</span>
+      </div>
+      <div class="field">
+        <label>Logo Image Height (px)</label>
+        <div class="range-row">
+          <input type="range" name="logo_image_size" min="20" max="120" step="2" value={v('logo_image_size','40')} id="lis"/>
+          <span class="range-val" id="lisv">{v('logo_image_size','40')}px</span>
+        </div>
+        <span class="hint">Controls how tall the logo image is rendered. Text size is separate above.</span>
+      </div>
     </div>
 
     <!-- NAVBAR STYLE -->
@@ -231,7 +246,7 @@ const menuItems = (c.menu_items as Array<{label:string;href:string;sort_order:nu
     const out = document.getElementById(o);
     el?.addEventListener('input', () => { if (out) out.textContent = el.value + suf; });
   };
-  link('ls','lsv'); link('ms','msv'); link('nh','nhv');
+  link('ls','lsv'); link('ms','msv'); link('nh','nhv'); link('lis','lisv');
 
   // Add menu item dynamically
   const list = document.getElementById('menuList');

@@ -43,6 +43,9 @@ if (Astro.request.method === 'POST') {
     marquee_hover_scale: get('marquee_hover_scale', '1.35'),
     // General
     words_gap:           get('words_gap', 'clamp(5rem,11vw,11rem)'),
+    tagline:             get('tagline', 'Making your BRAND Famous'),
+    tagline_color:       get('tagline_color', '#FFFFFF'),
+    tagline_size:        get('tagline_size', 'clamp(.85rem,1.3vw,1.1rem)'),
     subheadline:         get('subheadline'),
     sub_offset_x:        get('sub_offset_x', '0'),
     sub_offset_y:        get('sub_offset_y', '0'),
@@ -259,6 +262,16 @@ const v = (k: string, d: string) => c[k] ?? d;
         <label>Gap Between Words (controls how much circle overlaps)</label>
         <input type="text" name="words_gap" value={v('words_gap','clamp(5rem,11vw,11rem)')}/>
         <span class="hint">Bigger gap = circle sits in open space. Smaller gap = circle overlaps letters more (Amsterdam look).</span>
+      </div>
+      <div class="card-title" style="font-size:.8125rem;margin-bottom:.75rem;margin-top:.25rem">Tagline <span class="badge">appears above subheadline</span></div>
+      <div class="grid3">
+        <div class="field" style="grid-column:span 2"><label>Tagline Text</label><input type="text" name="tagline" value={v('tagline','Making your BRAND Famous')}/></div>
+        <div class="field"><label>Colour</label><input type="color" name="tagline_color" value={v('tagline_color','#FFFFFF')}/></div>
+      </div>
+      <div class="field">
+        <label>Tagline Font Size (CSS)</label>
+        <input type="text" name="tagline_size" value={v('tagline_size','clamp(.85rem,1.3vw,1.1rem)')}/>
+        <span class="hint">e.g. <code>1.1rem</code> fixed, or <code>clamp(.85rem,1.3vw,1.1rem)</code> responsive</span>
       </div>
       <div class="field"><label>Subheadline</label><input type="text" name="subheadline" value={v('subheadline','Websites · Merch · Content · Meta Ads · Google Ads')}/></div>
       <div class="pos-note">📍 Move the subheadline line up/down/left/right just like the words. 0 = default centred.</div>

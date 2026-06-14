@@ -32,6 +32,7 @@ const ctaLabel   = c.cta_label         ?? 'Get Started';
 const ctaHref    = c.cta_href          ?? '/#packages';
 const ctaBg      = c.cta_bg            ?? '#FF3B00';
 const ctaText    = c.cta_text_color    ?? '#FFFFFF';
+const logoImgSize= c.logo_image_size   ?? '40';
 const sticky     = (c.sticky ?? 'on') === 'on';
 
 const menuItems: Array<{label:string;href:string;sort_order:number}> =
@@ -48,12 +49,14 @@ const menuItems: Array<{label:string;href:string;sort_order:number}> =
 <nav id="navbar"
   style={`position:${sticky ? 'fixed' : 'absolute'};top:0;left:0;right:0;z-index:50;display:flex;justify-content:space-between;align-items:center;padding-top:${navHeight}px;padding-bottom:${navHeight}px;padding-left:2rem;padding-right:2rem;background:${navBg}cc;backdrop-filter:blur(8px);border-bottom:1px solid transparent;transition:all .4s;`}>
 
-  <!-- Logo -->
-  <a href="/" style="z-index:51;text-decoration:none;display:flex;align-items:center;">
-    {logoType === 'image' && logoImg ? (
-      <img src={logoImg} alt={logoText1 + logoText2} style={`height:${parseInt(logoSize)+8}px;width:auto;display:block;`}/>
-    ) : (
-      <span style={`font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:${logoSize}px;letter-spacing:-0.02em;`}>
+  <!-- Logo: text / image / both -->
+  <a href="/" style="z-index:51;text-decoration:none;display:flex;align-items:center;gap:.5rem;">
+    {(logoType === 'image' || logoType === 'both') && logoImg && (
+      <img src={logoImg} alt={logoText1 + logoText2}
+        style={`height:${logoImgSize}px;width:auto;display:block;`}/>
+    )}
+    {(logoType === 'text' || logoType === 'both' || !logoImg) && (
+      <span style={`font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:${logoSize}px;letter-spacing:-0.02em;line-height:1;`}>
         <span style={`color:${logoColor1}`}>{logoText1}</span><span style={`color:${logoColor2}`}>{logoText2}</span>
       </span>
     )}
