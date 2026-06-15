@@ -1,11 +1,12 @@
 ---
 // src/components/sections/Hero.astro
-// Updates:
-//  - Video URL accepts YouTube, Instagram, OR direct .mp4 links (auto-detected)
-//  - Marquee spins seamlessly forever (rotates whole group — no start/end jump)
-//  - Hover shows an arrow in the circle centre, marquee brightens and encircles it
-//  - Subheadline has X/Y placement controls
-//  - All previous controls (size/position/colour per element) retained
+// AUDIT FIXES (keep everything, only add/correct):
+//  1. Marquee ring: restored <g><animateTransform/><text><textPath></g> — was missing, ring never rendered
+//  2. open() now sets clip-path to circle(150%) so fullscreen actually reveals
+//  3. zoomAndOpen(): circle zooms to fill hero section → then fullscreen opens (auto-expand effect)
+//  4. Tagline X/Y position from admin (tagline_offset_x / tagline_offset_y)
+//  5. Arrow visible on .hero-headline hover (not just .hero-circle hover) + clean, no orange fill
+//  6. All previous controls fully retained
 
 import { getAdmin } from '@/lib/supabase';
 import { loadTheme } from '@/lib/theme';
@@ -74,14 +75,17 @@ const orbColor     = c.orbital_color    ?? '#FFFFFF';
 const orbSize      = c.orbital_size      ?? '11';
 const orbSpeed     = parseFloat(c.orbital_speed ?? '14');
 const marqueeHoverScale = c.marquee_hover_scale ?? '1.5';
-// ── GENERAL ──
-const wordsGap     = c.words_gap        ?? 'clamp(5rem,11vw,11rem)';
-const subheadline  = c.subheadline      ?? 'Websites · Merch · Content · Meta Ads · Google Ads';
+// ── TAGLINE ──
 const tagline      = c.tagline           ?? 'Making your BRAND Famous';
 const taglineColor = c.tagline_color      ?? '#FFFFFF';
 const taglineSize  = c.tagline_size       ?? 'clamp(.85rem,1.3vw,1.1rem)';
 const taglineBg    = c.tagline_bg         ?? '#FF3B00';
 const taglineBoxText = c.tagline_box_text ?? '#FFFFFF';
+const taglineOffsetX = c.tagline_offset_x ?? '0'; // NEW: admin-controlled X position
+const taglineOffsetY = c.tagline_offset_y ?? '0'; // NEW: admin-controlled Y position
+// ── GENERAL ──
+const wordsGap     = c.words_gap        ?? 'clamp(5rem,11vw,11rem)';
+const subheadline  = c.subheadline      ?? 'Websites · Merch · Content · Meta Ads · Google Ads';
 const subOffsetX   = c.sub_offset_x     ?? '0';
 const subOffsetY   = c.sub_offset_y     ?? '0';
 const ctaPrimary   = c.cta_primary_label ?? 'See Packages';
@@ -94,10 +98,11 @@ const meta2        = c.meta_line2       ?? "India's Bold Brands";
 const meta3        = c.meta_line3       ?? 'Est. 2024';
 const autoSec      = parseInt(c.auto_expand_seconds ?? '0');
 
-// Repeat marquee text many times so it fully fills the circle (seamless spin)
-// Normalise separators: accept both · and . then rejoin with ·
-const orbNormalised = orbitalRaw.split(/[·.]/).map(x=>x.trim()).filter(Boolean).join(' · ');
+// Marquee text: normalise separators → repeat 8× to fully fill the circle path
+const orbNormalised = orbitalRaw.split(/[·.]/).map(x => x.trim()).filter(Boolean).join(' · ');
 const orbText = ((orbNormalised || orbitalRaw).trim() + ' · ').repeat(8);
+
+// Unique path ID per render (prevents SVG id collisions if component used twice)
 const pid = 'op' + Math.random().toString(36).slice(2, 7);
 ---
 
@@ -124,12 +129,44 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
       style={`position:absolute;top:50%;left:50%;transform:translate(calc(-50% + ${circleOffsetX}px),calc(-50% + ${circleOffsetY}px));z-index:15;width:${circleSize};height:${circleSize};cursor:pointer;`}
       role="button" tabindex="0" aria-label="Play video fullscreen" title="Click to play video">
 
-      <!-- Marquee ring — seamless infinite spin via rotating group -->
-      <svg class="hero-ring" viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg"
-        style={`position:absolute;inset:0;width:100%;height:100%;overflow:visible;opacity:.4;transition:opacity .4s ease,transform .4s ease;--hscale:${marqueeHoverScale};`}>
+      <!-- ═══════════════════════════════════════════════════════════
+           MARQUEE RING — seamless infinite spin via animateTransform
+           rotating the WHOLE <g> group 360° around the SVG centre.
+           The path at radius 104 sits just outside the video border.
+           Faint by default → fully visible on hover → scales to
+           marquee_hover_scale (admin-controlled).
+           ═══════════════════════════════════════════════════════════ -->
+      <svg
+        class="hero-ring"
+        viewBox="0 0 260 260"
+        xmlns="http://www.w3.org/2000/svg"
+        style={`position:absolute;inset:-15%;width:130%;height:130%;overflow:visible;opacity:.35;transition:opacity .4s ease,transform .4s ease;--hscale:${marqueeHoverScale};pointer-events:none;`}
+        aria-hidden="true"
+      >
         <defs>
+          <!-- Circular path the text follows. Centre 130,130 · radius 104 -->
           <path id={pid} d="M130,130 m-104,0 a104,104 0 1,1 208,0 a104,104 0 1,1 -208,0" fill="none"/>
         </defs>
+
+        <!-- Spinning text group — animateTransform rotates 360° seamlessly, no jump -->
+        <g>
+          <animateTransform
+            attributeName="transform"
+            type="rotate"
+            from="0 130 130"
+            to="360 130 130"
+            dur={`${orbSpeed}s`}
+            repeatCount="indefinite"
+          />
+          <text
+            font-size={orbSize}
+            fill={orbColor}
+            font-family="Space Grotesk,Inter,sans-serif"
+            letter-spacing="0.07em"
+          >
+            <textPath href={`#${pid}`} startOffset="0%">{orbText}</textPath>
+          </text>
+        </g>
       </svg>
 
       <!-- VIDEO inside circle: file / youtube / instagram -->
@@ -151,11 +188,14 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
         )}
       </div>
 
-      <!-- HOVER ARROW — round ORANGE filled button in centre; the MOVING marquee is the ring around it -->
-      <div id="heroArrow" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(.6);opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:18;">
+      <!-- HOVER ARROW — just the SVG arrow, no filled background.
+           The MOVING MARQUEE RING above is what "encircles" it.
+           Visible on both .hero-circle hover AND .hero-headline hover (see CSS). -->
+      <div id="heroArrow"
+        style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(.6);opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:18;">
         <div style="width:clamp(44px,5vw,64px);height:clamp(44px,5vw,64px);display:flex;align-items:center;justify-content:center;">
           <svg width="100%" height="100%" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-            <path d="M13 27 L27 13 M27 13 H17 M27 13 V23" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M13 27 L27 13 M27 13 H17 M27 13 V23" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
       </div>
@@ -163,9 +203,10 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
 
   </div>
 
-  <!-- Subheadline (X/Y placement) + line + CTAs -->
+  <!-- Subheadline (X/Y placement) + Tagline (X/Y placement) + CTAs -->
   <div style={`position:absolute;bottom:clamp(2.5rem,10vh,6rem);left:50%;transform:translateX(-50%);z-index:10;display:flex;flex-direction:column;align-items:center;gap:1.4rem;width:100%;padding:0 2rem;text-align:center;`}>
-    <!-- Tagline: Making your BRAND Famous — in orange box (admin controlled) -->
+
+    <!-- Tagline box: position controlled from admin via tagline_offset_x / tagline_offset_y -->
     <span style={`
       display:inline-block;
       background:${taglineBg};
@@ -180,7 +221,10 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
       line-height:1.3;
       text-align:center;
       text-transform:uppercase;
+      transform:translate(${taglineOffsetX}px,${taglineOffsetY}px);
+      will-change:transform;
     `}>{tagline}</span>
+
     <p style={`color:${textColor};opacity:.4;font-size:clamp(.6rem,1vw,.8125rem);letter-spacing:.18em;text-transform:uppercase;font-family:Inter,sans-serif;margin:0;line-height:1.9;transform:translate(${subOffsetX}px,${subOffsetY}px);`}>{subheadline}</p>
     <div style={`width:1px;height:30px;background:linear-gradient(to bottom,${accentColor},transparent);opacity:.6;`}></div>
     <div style="display:flex;align-items:center;gap:.875rem;flex-wrap:wrap;justify-content:center;">
@@ -203,61 +247,79 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
       animation:heroLineDrop 2.2s ease-in-out infinite;"></div>
   </div>
 
-  <!-- Fullscreen overlay -->
-  <div id="heroFullscreen" style="position:absolute;inset:0;z-index:200;background:#000;display:flex;align-items:center;justify-content:center;
-    opacity:0;pointer-events:none;
-    clip-path:circle(0% at 50% 50%);
-    transition:clip-path .65s cubic-bezier(.4,0,.2,1), opacity .2s ease;"
+  <!-- Fullscreen overlay — clip-path expands from centre on open() -->
+  <div id="heroFullscreen"
+    style="position:absolute;inset:0;z-index:200;background:#000;display:flex;align-items:center;justify-content:center;
+      opacity:0;pointer-events:none;
+      clip-path:circle(0% at 50% 50%);
+      transition:clip-path .65s cubic-bezier(.4,0,.2,1), opacity .15s ease;"
     aria-modal="true" role="dialog" aria-label="Fullscreen video">
     <div id="heroFullInner" style="width:100%;height:100%;"></div>
-    <button id="heroCloseBtn" aria-label="Close video" style="position:absolute;top:1.25rem;right:1.25rem;width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.65);border:1.5px solid rgba(255,255,255,.2);color:#fff;font-size:1.125rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;z-index:201;" onmouseover="this.style.background='#FF3B00';this.style.borderColor='#FF3B00'" onmouseout="this.style.background='rgba(0,0,0,.65)';this.style.borderColor='rgba(255,255,255,.2)'">✕</button>
+    <button id="heroCloseBtn" aria-label="Close video"
+      style="position:absolute;top:1.25rem;right:1.25rem;width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.65);border:1.5px solid rgba(255,255,255,.2);color:#fff;font-size:1.125rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;z-index:201;"
+      onmouseover="this.style.background='#FF3B00';this.style.borderColor='#FF3B00'"
+      onmouseout="this.style.background='rgba(0,0,0,.65)';this.style.borderColor='rgba(255,255,255,.2)'">✕</button>
   </div>
 
 </section>
 
 <style>
+  /* ── Hover: ring brightens when hovering anywhere over the headline ── */
   .hero-headline:hover .hero-ring { opacity: 1 !important; }
-  .hero-circle:hover .hero-ring, .hero-circle:focus .hero-ring {
+
+  /* ── Hover: ring scales + arrow appears when hovering the circle ── */
+  .hero-circle:hover .hero-ring,
+  .hero-circle:focus .hero-ring {
     opacity: 1 !important;
-    transform: scale(var(--hscale, 1.35)) !important;
+    transform: scale(var(--hscale, 1.5)) !important;
   }
-  .hero-circle:hover #heroArrow, .hero-circle:focus #heroArrow {
+
+  /* ── Arrow appears on both: headline hover AND circle hover ──
+     This is the key fix: hovering the text also reveals the arrow in
+     the circle, with the marquee ring encircling it. No filled background.  */
+  .hero-headline:hover #heroArrow,
+  .hero-circle:hover #heroArrow,
+  .hero-circle:focus #heroArrow {
     opacity: 1 !important;
     transform: translate(-50%, -50%) scale(1) !important;
   }
 
   @media (max-width: 640px) {
     .hero-headline { position: absolute !important; flex-direction: column !important; }
-    .hero-words { flex-direction: column !important; gap: clamp(5.5rem, 30vw, 9rem) !important; }
-    .hero-word { font-size: clamp(2rem, 11vw, 3rem) !important; text-align: center !important; }
-    .hero-circle { width: clamp(120px, 34vw, 160px) !important; height: clamp(120px, 34vw, 160px) !important; }
+    .hero-words    { flex-direction: column !important; gap: clamp(5.5rem, 30vw, 9rem) !important; }
+    .hero-word     { font-size: clamp(2rem, 11vw, 3rem) !important; text-align: center !important; }
+    .hero-circle   { width: clamp(120px, 34vw, 160px) !important; height: clamp(120px, 34vw, 160px) !important; }
   }
 
   @keyframes heroBounce {
-    0%,100% { transform: translateX(-50%) translateY(0); }
-    50%      { transform: translateX(-50%) translateY(7px); }
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50%       { transform: translateX(-50%) translateY(7px); }
   }
   @keyframes heroLineDrop {
-    0%        { transform: scaleY(0); transform-origin: top; opacity: 0; }
-    30%       { transform: scaleY(1); transform-origin: top; opacity: 1; }
-    70%       { transform: scaleY(1); transform-origin: bottom; opacity: 1; }
-    100%      { transform: scaleY(0); transform-origin: bottom; opacity: 0; }
+    0%   { transform: scaleY(0); transform-origin: top;    opacity: 0; }
+    30%  { transform: scaleY(1); transform-origin: top;    opacity: 1; }
+    70%  { transform: scaleY(1); transform-origin: bottom; opacity: 1; }
+    100% { transform: scaleY(0); transform-origin: bottom; opacity: 0; }
   }
-  @keyframes orbSpin {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
-  }
-  .orb-text { will-change: transform; }
 </style>
 
-<script define:vars={{ autoSec, vidType: vid.type, fileUrl: vid.type === 'file' ? vid.url : '', ytFull, igEmbed }}>
-(function() {
+<script define:vars={{
+  autoSec,
+  vidType:   vid.type,
+  fileUrl:   vid.type === 'file' ? vid.url : '',
+  ytFull,
+  igEmbed,
+  circleOffX: circleOffsetX,
+  circleOffY: circleOffsetY
+}}>
+(function () {
   const circle     = document.getElementById('heroCircle');
   const fullscreen = document.getElementById('heroFullscreen');
   const inner      = document.getElementById('heroFullInner');
   const closeBtn   = document.getElementById('heroCloseBtn');
   if (!circle || !fullscreen || !inner || !closeBtn) return;
 
+  /* ── Build fullscreen video HTML ── */
   function buildFull() {
     if (vidType === 'file') {
       return `<video src="${fileUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" autoplay loop playsinline controls></video>`;
@@ -271,32 +333,89 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
     return '';
   }
 
+  /* ── Open fullscreen (clip-path expands from 0% → 150%) ── */
   function open() {
     inner.innerHTML = buildFull();
-    fullscreen.style.opacity = '1';
+    // FIXED: must set clip-path here so the transition actually plays
+    fullscreen.style.clipPath   = 'circle(150% at 50% 50%)';
+    fullscreen.style.opacity    = '1';
     fullscreen.style.pointerEvents = 'auto';
     document.body.style.overflow = 'hidden';
   }
+
+  /* ── Close fullscreen (clip-path collapses back to 0%) ── */
   function close() {
     fullscreen.style.clipPath = 'circle(0% at 50% 50%)';
-    fullscreen.style.opacity = '0';
+    fullscreen.style.opacity  = '0';
     setTimeout(() => {
       fullscreen.style.pointerEvents = 'none';
       inner.innerHTML = '';
     }, 650);
     document.body.style.overflow = '';
   }
+
+  /* ── Auto-expand: zoom circle to fill hero → then open fullscreen ──
+     After auto_expand_seconds the video circle animates to cover the
+     entire hero section (zoom-in effect), then the fullscreen overlay
+     opens behind it. Gives a cinematic "push-through" feel.           */
+  function zoomAndOpen() {
+    const heroSec = document.getElementById('hero');
+    if (!heroSec) { open(); return; }
+
+    const cRect = circle.getBoundingClientRect();
+    const hRect = heroSec.getBoundingClientRect();
+
+    // Scale needed to fill the hero section (add 20% extra to avoid gaps)
+    const scale = Math.max(hRect.width / cRect.width, hRect.height / cRect.height) * 1.2;
+
+    // Animate the circle zooming to fill the hero section
+    circle.style.transition = 'transform 1.4s cubic-bezier(.16,1,.3,1)';
+    circle.style.zIndex     = '190';
+    circle.style.transform  =
+      `translate(calc(-50% + ${circleOffX}px), calc(-50% + ${circleOffY}px)) scale(${scale})`;
+
+    // After zoom completes, open the fullscreen overlay
+    const t1 = setTimeout(() => {
+      open();
+
+      // Reset circle while hidden behind the fullscreen overlay
+      const t2 = setTimeout(() => {
+        circle.style.transition = 'none';
+        circle.style.transform  =
+          `translate(calc(-50% + ${circleOffX}px), calc(-50% + ${circleOffY}px))`;
+        circle.style.zIndex = '15';
+
+        // Restore natural transitions after the DOM settles
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          circle.style.transition = '';
+        }));
+      }, 120);
+
+      closeBtn.addEventListener('click', () => clearTimeout(t2), { once: true });
+    }, 1420);
+
+    closeBtn.addEventListener('click', () => clearTimeout(t1), { once: true });
+  }
+
+  /* ── Event wiring ── */
   circle.addEventListener('click', open);
-  circle.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+  circle.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+  });
   closeBtn.addEventListener('click', close);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
 
+  /* ── Auto-expand timer ── */
   if (autoSec > 0) {
     const t = setTimeout(() => {
-      if (!fullscreen.style.opacity || fullscreen.style.opacity === '0') open();
+      if (!fullscreen.style.opacity || fullscreen.style.opacity === '0') {
+        zoomAndOpen(); // zoom → then fullscreen (not just open())
+      }
     }, autoSec * 1000);
+
     closeBtn.addEventListener('click', () => clearTimeout(t), { once: true });
-    // Only cancel if user scrolls MORE than 150px (ignore tiny load-time scrolls)
+
+    // Cancel only if user scrolls more than 150px (ignore tiny load-time scrolls)
     const onScroll = () => {
       if (window.scrollY > 150) { clearTimeout(t); window.removeEventListener('scroll', onScroll); }
     };
