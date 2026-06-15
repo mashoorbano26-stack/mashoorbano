@@ -1,29 +1,20 @@
 // src/lib/supabase.ts
-// Cloudflare Pages: service role key ONLY available via runtime.env context
-// Passed to pages via Astro.locals (set in middleware.ts)
-// This file provides helpers that work in BOTH local dev and Cloudflare
+// Bulletproof Supabase clients for local dev AND Cloudflare Pages SSR
 
 import { createClient as _create } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import type { AstroCookies } from 'astro';
 
-// PUBLIC_ vars — available everywhere via import.meta.env (Vite bakes them in)
 const URL  = import.meta.env.PUBLIC_SUPABASE_URL      ?? '';
 const ANON = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
-
-// Service key — only available locally via import.meta.env
-// On Cloudflare it comes through Astro.locals (set by middleware from runtime.env)
 const LOCAL_SVC = import.meta.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
 
-// Browser anon client
 export const supabase = URL && ANON ? _create(URL, ANON) : (null as any);
 
-// Backward compat alias
 export function createClient() {
   return URL && ANON ? _create(URL, ANON) : (null as any);
 }
 
-// SSR auth client using cookies
 export function makeServerClient(cookies: AstroCookies) {
   if (!URL || !ANON) return null as any;
   return createServerClient(URL, ANON, {
@@ -35,15 +26,31 @@ export function makeServerClient(cookies: AstroCookies) {
   });
 }
 
-// Admin client — for local dev only (Cloudflare uses Astro.locals.supabaseAdmin)
-export const supabaseAdmin = (() => {
-  if (!URL || !LOCAL_SVC) return null as any;
-  return _create(URL, LOCAL_SVC, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-})();
+// Local-dev singleton (works because import.meta.env has the key locally)
+export const supabaseAdmin = (URL && LOCAL_SVC)
+  ? _create(URL, LOCAL_SVC, { auth: { autoRefreshToken: false, persistSession: false } })
+  : (null as any);
 
-// Helper: get admin client from either locals (Cloudflare) or module singleton (local dev)
-export function getAdmin(locals: Record<string, any>) {
-  return (locals?.supabaseAdmin) ?? supabaseAdmin;
+// getAdmin: resolves admin client from the best available source
+//   1. locals.supabaseAdmin (set by middleware from Cloudflare runtime.env)
+//   2. locals.runtime.env service key (Cloudflare, direct)
+//   3. module singleton (local dev via import.meta.env)
+export function getAdmin(locals?: Record<string, any>) {
+  // 1. Middleware already built it
+  if (locals?.supabaseAdmin) return locals.supabaseAdmin;
+
+  // 2. Build from Cloudflare runtime env directly
+  const cfEnv = locals?.runtime?.env ?? {};
+  const url  = cfEnv.PUBLIC_SUPABASE_URL || URL;
+  const svc  = cfEnv.SUPABASE_SERVICE_ROLE_KEY || LOCAL_SVC;
+  if (url && svc) {
+    return _create(url, svc, { auth: { autoRefreshToken: false, persistSession: false } });
+  }
+
+  // 3. Local dev singleton
+  if (supabaseAdmin) return supabaseAdmin;
+
+  // Nothing available — log loudly
+  console.error('[supabase] getAdmin: no credentials available. locals.supabaseAdmin missing, runtime.env empty, and import.meta.env.SUPABASE_SERVICE_ROLE_KEY unset.');
+  return null as any;
 }
