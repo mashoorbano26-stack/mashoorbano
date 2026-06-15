@@ -1,30 +1,29 @@
 // src/lib/supabase.ts
-// Cloudflare Pages fix: use process.env for server-only secrets
-// (import.meta.env does NOT expose non-PUBLIC_ secrets at runtime on Cloudflare)
+// Cloudflare Pages: service role key ONLY available via runtime.env context
+// Passed to pages via Astro.locals (set in middleware.ts)
+// This file provides helpers that work in BOTH local dev and Cloudflare
 
 import { createClient as _create } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import type { AstroCookies } from 'astro';
 
-// PUBLIC_ vars work with import.meta.env (Vite replaces them at build time)
-const URL  = import.meta.env.PUBLIC_SUPABASE_URL       ?? '';
-const ANON = import.meta.env.PUBLIC_SUPABASE_ANON_KEY  ?? '';
+// PUBLIC_ vars — available everywhere via import.meta.env (Vite bakes them in)
+const URL  = import.meta.env.PUBLIC_SUPABASE_URL      ?? '';
+const ANON = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
 
-// Non-PUBLIC secret: must use process.env on Cloudflare Workers runtime
-// import.meta.env does NOT receive this at runtime — only process.env does
-const SVC  = (typeof process !== 'undefined' && process.env?.SUPABASE_SERVICE_ROLE_KEY)
-  || import.meta.env.SUPABASE_SERVICE_ROLE_KEY
-  || '';
+// Service key — only available locally via import.meta.env
+// On Cloudflare it comes through Astro.locals (set by middleware from runtime.env)
+const LOCAL_SVC = import.meta.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
 
-// Browser anon client (safe in React .tsx)
+// Browser anon client
 export const supabase = URL && ANON ? _create(URL, ANON) : (null as any);
 
-// Backward-compat alias for any .tsx importing { createClient }
+// Backward compat alias
 export function createClient() {
   return URL && ANON ? _create(URL, ANON) : (null as any);
 }
 
-// SSR server client (Astro .astro frontmatter only)
+// SSR auth client using cookies
 export function makeServerClient(cookies: AstroCookies) {
   if (!URL || !ANON) return null as any;
   return createServerClient(URL, ANON, {
@@ -36,13 +35,15 @@ export function makeServerClient(cookies: AstroCookies) {
   });
 }
 
-// Admin service role — uses process.env for Cloudflare runtime compatibility
+// Admin client — for local dev only (Cloudflare uses Astro.locals.supabaseAdmin)
 export const supabaseAdmin = (() => {
-  if (!URL || !SVC) {
-    console.error('[supabase] supabaseAdmin: missing URL or SERVICE_ROLE_KEY');
-    return null as any;
-  }
-  return _create(URL, SVC, {
+  if (!URL || !LOCAL_SVC) return null as any;
+  return _create(URL, LOCAL_SVC, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 })();
+
+// Helper: get admin client from either locals (Cloudflare) or module singleton (local dev)
+export function getAdmin(locals: Record<string, any>) {
+  return (locals?.supabaseAdmin) ?? supabaseAdmin;
+}

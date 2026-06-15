@@ -4,9 +4,6 @@ import react from '@astrojs/react';
 import tailwind from '@astrojs/tailwind';
 import cloudflare from '@astrojs/cloudflare';
 
-// NOTE: sitemap removed — it crashes in full SSR mode.
-// Generate sitemap manually or add back only after site is live.
-
 export default defineConfig({
   site: 'https://mashoorbano.pages.dev',
   output: 'server',
@@ -14,11 +11,14 @@ export default defineConfig({
     mode: 'directory',
     functionPerRoute: false,
     imageService: 'passthrough',
+    // This exposes Cloudflare runtime (including secrets) via Astro.locals.runtime
+    platformProxy: {
+      enabled: true,
+    },
   }),
   integrations: [
     react(),
     tailwind(),
-    // sitemap() removed — incompatible with output:'server' on Cloudflare
   ],
   vite: {
     ssr: {
@@ -26,7 +26,6 @@ export default defineConfig({
     },
     build: {
       rollupOptions: {
-        // Prevent circular chunk warnings from becoming errors
         onwarn(warning, warn) {
           if (warning.code === 'CIRCULAR_DEPENDENCY') return;
           warn(warning);

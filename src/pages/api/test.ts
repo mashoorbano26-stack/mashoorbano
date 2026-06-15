@@ -1,50 +1,46 @@
-// src/pages/api/test.ts — DELETE after debugging
+// src/pages/api/test.ts — DELETE after confirming Supabase works
 export const prerender = false;
 import type { APIRoute } from 'astro';
 
-export const GET: APIRoute = async () => {
-  const metaUrl  = import.meta.env.PUBLIC_SUPABASE_URL;
-  const metaAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-  const metaSvc  = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
-  const procSvc  = (typeof process !== 'undefined') ? process.env?.SUPABASE_SERVICE_ROLE_KEY : 'process undefined';
-  const procUrl  = (typeof process !== 'undefined') ? process.env?.PUBLIC_SUPABASE_URL : 'process undefined';
+export const GET: APIRoute = async (context) => {
+  const locals = context.locals as any;
 
-  const env = {
-    'import.meta.env.PUBLIC_SUPABASE_URL':       metaUrl  ? `✓ ${metaUrl.slice(0,35)}` : '✗ MISSING',
-    'import.meta.env.PUBLIC_SUPABASE_ANON_KEY':  metaAnon ? `✓ set` : '✗ MISSING',
-    'import.meta.env.SUPABASE_SERVICE_ROLE_KEY': metaSvc  ? `✓ set` : '✗ MISSING',
-    'process.env.SUPABASE_SERVICE_ROLE_KEY':     procSvc  ? `✓ set` : '✗ MISSING',
-    'process.env.PUBLIC_SUPABASE_URL':           procUrl  ? `✓ set` : '✗ MISSING',
+  // Check all possible sources
+  const runtime = locals?.runtime ?? (context as any).runtime ?? {};
+  const cfEnv   = runtime?.env ?? {};
+
+  const sources = {
+    'import.meta PUBLIC_SUPABASE_URL':      import.meta.env.PUBLIC_SUPABASE_URL      ? '✓' : '✗',
+    'import.meta PUBLIC_SUPABASE_ANON_KEY': import.meta.env.PUBLIC_SUPABASE_ANON_KEY ? '✓' : '✗',
+    'import.meta SUPABASE_SERVICE_ROLE_KEY':import.meta.env.SUPABASE_SERVICE_ROLE_KEY ? '✓' : '✗',
+    'process.env SERVICE_ROLE_KEY':         (typeof process !== 'undefined' && process.env?.SUPABASE_SERVICE_ROLE_KEY) ? '✓' : '✗',
+    'runtime.env SERVICE_ROLE_KEY':         cfEnv?.SUPABASE_SERVICE_ROLE_KEY ? '✓' : '✗',
+    'locals.supabaseAdmin':                 locals?.supabaseAdmin ? '✓ (set by middleware)' : '✗',
+    'locals.supabaseServiceKey':            locals?.supabaseServiceKey ? '✓' : '✗',
     mode: import.meta.env.MODE,
     ts:   new Date().toISOString(),
   };
 
-  // Test DB with whichever key is available
-  const url = metaUrl || procUrl || '';
-  const svc = metaSvc || procSvc || '';
+  // Try DB using locals.supabaseAdmin (set by middleware from runtime.env)
   let db = 'not attempted';
-
-  try {
-    const { createClient } = await import('@supabase/supabase-js');
-    if (url && svc) {
-      const admin = createClient(url, svc, {
-        auth: { autoRefreshToken: false, persistSession: false }
-      });
+  const admin = locals?.supabaseAdmin;
+  if (admin) {
+    try {
       const { data, error } = await admin
         .from('site_content')
         .select('page,section')
         .limit(5);
       db = error
-        ? `✗ DB error: ${error.message}`
-        : `✓ Connected — ${data?.length ?? 0} rows: ${data?.map((r:any)=>`${r.page}/${r.section}`).join(', ')}`;
-    } else {
-      db = `✗ No valid key — url:${!!url} svc:${!!svc}`;
+        ? `✗ ${error.message}`
+        : `✓ Connected — ${data?.length} rows: ${data?.map((r:any)=>`${r.page}/${r.section}`).join(', ')}`;
+    } catch (e: any) {
+      db = `✗ Exception: ${e?.message}`;
     }
-  } catch (e: any) {
-    db = `✗ Exception: ${e?.message}`;
+  } else {
+    db = '✗ No supabaseAdmin in locals — middleware may not be running';
   }
 
-  return new Response(JSON.stringify({ env, db }, null, 2), {
+  return new Response(JSON.stringify({ sources, db }, null, 2), {
     headers: { 'Content-Type': 'application/json' },
   });
 };
