@@ -1,160 +1,191 @@
 ---
-// src/pages/admin/testimonials.astro — full CRUD for testimonials table
+// src/pages/admin/testimonials.astro
+// Manages testimonials: text + video/photo URL + city + speed + all colours
 export const prerender = false;
-import { makeServerClient, supabaseAdmin } from '@/lib/supabase';
+import { makeServerClient, getAdmin } from '@/lib/supabase';
 const supabase = makeServerClient(Astro.cookies);
+const supabaseAdmin = getAdmin(Astro.locals);
 const { data: { session } } = await supabase.auth.getSession();
 if (!session) return Astro.redirect('/admin/login');
 
-let saved = false; let error = '';
+let saved = false; let msg = '';
+
 if (Astro.request.method === 'POST') {
   const f = await Astro.request.formData();
-  const act = f.get('_action')?.toString();
-  if (act === 'save') {
-    const id = f.get('id')?.toString();
-    const row = {
-      client_name:  f.get('client_name')?.toString() ?? '',
-      brand_name:   f.get('brand_name')?.toString() ?? '',
-      designation:  f.get('designation')?.toString() ?? '',
-      quote:        f.get('quote')?.toString() ?? '',
-      photo_url:    f.get('photo_url')?.toString() || null,
-      video_url:    f.get('video_url')?.toString() || null,
-      rating:       parseInt(f.get('rating')?.toString() ?? '5'),
-      service_type: f.get('service_type')?.toString() || null,
-      is_active:    f.get('is_active') !== 'off',
-      sort_order:   parseInt(f.get('sort_order')?.toString() ?? '0'),
+  const get = (k: string, d = '') => f.get(k)?.toString() ?? d;
+  const action = get('_action');
+
+  if (action === 'section') {
+    const content = {
+      section_bg: get('section_bg','#0A0A0A'), card_bg: get('card_bg','#141414'),
+      card_text: get('card_text','#F5F5F0'), heading: get('heading','Real World, Real Results'),
+      subheading: get('subheading','Founders, CEOs and creators who grew with Mashurban.'),
+      label: get('label','05 — What Clients Say'), heading_color: get('heading_color','#F5F5F0'),
+      subheading_color: get('subheading_color','#666666'), carousel_speed: get('carousel_speed','35'),
     };
-    if (id) { const { error: e } = await supabaseAdmin.from('testimonials').update(row).eq('id',id); if(e) error=e.message; else saved=true; }
-    else    { const { error: e } = await supabaseAdmin.from('testimonials').insert(row);              if(e) error=e.message; else saved=true; }
+    const { error: e } = await supabaseAdmin.from('site_content').upsert(
+      { page:'home', section:'testimonials', content, updated_at: new Date().toISOString() },
+      { onConflict:'page,section' });
+    saved = !e; msg = e?.message ?? '';
   }
-  if (act === 'toggle') {
-    const id = f.get('id')?.toString();
-    const cur = f.get('current')?.toString() === 'true';
-    if(id){ await supabaseAdmin.from('testimonials').update({ is_active: !cur }).eq('id',id); saved=true; }
+
+  if (action === 'add') {
+    const { error: e } = await supabaseAdmin.from('testimonials').insert({
+      client_name: get('client_name'), brand_name: get('brand_name') || null,
+      designation: get('designation') || null, city: get('city') || null,
+      quote: get('quote'), photo_url: get('photo_url') || null,
+      video_url: get('video_url') || null,
+      rating: parseInt(get('rating','5')), service_type: get('service_type') || null,
+      is_active: true, sort_order: parseInt(get('sort_order','0')),
+    });
+    saved = !e; msg = e?.message ?? 'Testimonial added!';
+  }
+
+  if (action === 'delete') {
+    const { error: e } = await supabaseAdmin.from('testimonials').delete().eq('id', get('id'));
+    saved = !e; msg = e?.message ?? 'Deleted.';
   }
 }
-const { data: testimonials } = await supabaseAdmin.from('testimonials').select('*').order('sort_order');
-const rows = testimonials ?? [];
+
+const { data: tData } = await supabaseAdmin.from('testimonials').select('*').order('sort_order', { ascending: true });
+const testimonials = tData ?? [];
+const { data: cfgData } = await supabaseAdmin.from('site_content').select('content').eq('page','home').eq('section','testimonials').single();
+const cfg = (cfgData?.content as Record<string,string>) ?? {};
+const v = (k: string, d: string) => cfg[k] ?? d;
 ---
 <!DOCTYPE html><html lang="en"><head>
-  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Testimonials — Mashurban Admin</title><meta name="robots" content="noindex,nofollow"/>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
-  <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    body{background:#F7F5F2;color:#1A1A1A;font-family:Inter,sans-serif;min-height:100vh;display:flex}
-    aside{width:220px;min-height:100vh;background:#fff;border-right:1px solid #E5E0D8;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
-    .logo{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;padding:1.25rem 1rem;border-bottom:1px solid #E5E0D8}
-    .logo span{color:#FF3B00}
-    nav a{display:block;padding:.45rem 1rem;color:#888;font-size:.8125rem;text-decoration:none;border-left:2px solid transparent;transition:all .15s}
-    nav a:hover{color:#1A1A1A;background:#F7F5F2}
-    nav a.active{color:#FF3B00;border-left-color:#FF3B00;background:#fff5f3}
-    .sf{padding:.75rem 1rem;border-top:1px solid #E5E0D8;margin-top:auto}
-    .sf a{font-size:.75rem;color:#888;text-decoration:none}
-    main{flex:1;padding:2rem;max-width:900px}
-    h1{font-family:'Space Grotesk',sans-serif;font-size:1.375rem;font-weight:700;margin-bottom:.25rem;letter-spacing:-.02em}
-    .sub{color:#888;font-size:.8125rem;margin-bottom:2rem}
-    .card{background:#fff;border:1px solid #E5E0D8;border-radius:16px;padding:1.5rem;margin-bottom:1rem}
-    .new-form{background:#fff5f3;border:1.5px dashed #FF3B00;border-radius:16px;padding:1.5rem;margin-bottom:1.5rem}
-    .new-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.9375rem;color:#FF3B00;margin-bottom:1rem}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
-    .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem}
-    .field{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.5rem}
-    label{font-size:.7rem;font-weight:500;color:#666;text-transform:uppercase;letter-spacing:.06em}
-    input[type=text],input[type=url],input[type=number],select,textarea{width:100%;background:#F7F5F2;border:1.5px solid #E5E0D8;border-radius:8px;padding:.5rem .75rem;color:#1A1A1A;font-size:.8125rem;font-family:inherit;outline:none;transition:border-color .2s}
-    input:focus,select:focus,textarea:focus{border-color:#FF3B00}
-    textarea{resize:vertical;min-height:80px}
-    select{appearance:none}
-    .btn-save{padding:.55rem 1.25rem;background:#FF3B00;color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.8125rem;border:none;border-radius:8px;cursor:pointer;margin-top:.75rem}
-    .row-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem}
-    .client-info strong{font-family:'Space Grotesk',sans-serif;font-size:.9375rem}
-    .client-info span{font-size:.75rem;color:#888;display:block;margin-top:.125rem}
-    .active-badge{font-size:.65rem;padding:.2rem .6rem;border-radius:999px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
-    .active-badge.on{background:#f0fdf4;color:#166534;border:1px solid #86efac}
-    .active-badge.off{background:#f3f4f6;color:#888;border:1px solid #e5e7eb}
-    .toast{padding:.75rem 1.25rem;border-radius:10px;margin-bottom:1.5rem;font-size:.875rem;font-weight:500}
-    .toast.ok{background:#f0fdf4;border:1px solid #86efac;color:#166534}
-    .toast.err{background:#fef2f2;border:1px solid #fca5a5;color:#991b1b}
-    details summary{cursor:pointer;list-style:none;user-select:none}
-  </style>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Testimonials — Mashurban Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:#F7F5F2;color:#1A1A1A;font-family:Inter,sans-serif;min-height:100vh;display:flex}
+aside{width:220px;min-height:100vh;background:#fff;border-right:1px solid #E5E0D8;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
+.logo{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;padding:1.25rem 1rem;border-bottom:1px solid #E5E0D8}.logo span{color:#FF3B00}
+nav a{display:block;padding:.45rem 1rem;color:#888;font-size:.8125rem;text-decoration:none;border-left:2px solid transparent}
+nav a:hover{color:#1A1A1A;background:#F7F5F2}nav a.active{color:#FF3B00;border-left-color:#FF3B00;background:#fff5f3}
+.sf{padding:.75rem 1rem;border-top:1px solid #E5E0D8;margin-top:auto}.sf a{font-size:.75rem;color:#888;text-decoration:none}
+main{flex:1;padding:2rem;max-width:960px}
+h1{font-family:'Space Grotesk',sans-serif;font-size:1.375rem;font-weight:700;margin-bottom:.25rem}
+.sub{color:#888;font-size:.8125rem;margin-bottom:1.5rem}
+.card{background:#fff;border:1px solid #E5E0D8;border-radius:16px;padding:1.75rem;margin-bottom:1.25rem}
+.card-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.9375rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:.5rem}
+.card-title::before{content:'';width:3px;height:1rem;background:#FF3B00;border-radius:2px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
+.field{display:flex;flex-direction:column;gap:.375rem;margin-bottom:.75rem}
+label{font-size:.7rem;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.06em}
+input,textarea,select{width:100%;background:#F7F5F2;border:1.5px solid #E5E0D8;border-radius:10px;padding:.625rem .875rem;color:#1A1A1A;font-size:.875rem;font-family:inherit;outline:none;transition:border-color .2s}
+input[type=color]{height:44px;padding:.3rem .5rem;cursor:pointer}input:focus,textarea:focus{border-color:#FF3B00}
+textarea{min-height:80px;resize:vertical}
+.range-row{display:flex;align-items:center;gap:.6rem}input[type=range]{flex:1;accent-color:#FF3B00}
+.range-val{font-size:.8rem;font-weight:700;color:#FF3B00;min-width:2.5rem;text-align:right}
+.hint{font-size:.7rem;color:#aaa;margin-top:.2rem;line-height:1.5}
+.btn{padding:.625rem 1.25rem;border-radius:10px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.8125rem;cursor:pointer;border:none;transition:all .2s}
+.btn-save{background:#FF3B00;color:#fff}.btn-save:hover{background:#e03200}
+.btn-del{background:#fff;border:1px solid #E5E0D8;color:#ef4444}.btn-del:hover{background:#fef2f2}
+.toast{padding:.875rem 1.25rem;border-radius:12px;margin-bottom:1.5rem;font-size:.875rem;font-weight:500}
+.toast.ok{background:#f0fdf4;border:1px solid #86efac;color:#166534}
+.toast.err{background:#fef2f2;border:1px solid #fca5a5;color:#991b1b}
+.t-row{display:grid;grid-template-columns:1fr 1fr auto;gap:.75rem;align-items:center;background:#F7F5F2;border-radius:12px;padding:1rem;margin-bottom:.75rem}
+.t-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.875rem}
+.t-meta{font-size:.75rem;color:#888}
+</style>
 </head><body>
 <aside>
   <div class="logo">Mash<span>urban</span></div>
   <nav>
-    <a href="/admin">Dashboard</a><a href="/admin/header">Header</a><a href="/admin/hero">Hero</a><a href="/admin/story">Story</a>
+    <a href="/admin">Dashboard</a><a href="/admin/header">Header</a>
+    <a href="/admin/hero">Hero</a><a href="/admin/story">Story</a>
     <a href="/admin/services">Services</a><a href="/admin/packages">Packages</a>
     <a href="/admin/portfolio">Portfolio</a><a href="/admin/testimonials" class="active">Testimonials</a>
     <a href="/admin/orders">Orders</a><a href="/admin/leads">Leads</a>
     <a href="/admin/blog">Blog</a><a href="/admin/seo">SEO</a>
     <a href="/admin/media">Media</a><a href="/admin/settings">Settings</a>
   </nav>
-  <div class="sf"><a href="/">← View site</a></div>
+  <div class="sf"><a href="/" target="_blank">← View site</a></div>
 </aside>
 <main>
   <h1>Testimonials</h1>
-  <p class="sub">Add and manage client reviews — appear live on the homepage</p>
-  {saved && <div class="toast ok">✓ Saved!</div>}
-  {error && <div class="toast err">⚠ {error}</div>}
+  <p class="sub">Video/image cards in infinite carousel · All colours + speed from admin</p>
+  {saved && <div class="toast ok">✓ {msg || 'Saved!'}</div>}
+  {!saved && msg && <div class="toast err">⚠ {msg}</div>}
 
-  <div class="new-form">
-    <div class="new-title">+ Add Testimonial</div>
-    <form method="POST">
-      <input type="hidden" name="_action" value="save"/>
+  <!-- Section style -->
+  <form method="POST">
+    <input type="hidden" name="_action" value="section"/>
+    <div class="card">
+      <div class="card-title">Section Style & Copy</div>
       <div class="grid3">
-        <div class="field"><label>Client Name</label><input type="text" name="client_name" placeholder="Aryan Kapoor" required/></div>
-        <div class="field"><label>Brand / Company</label><input type="text" name="brand_name" placeholder="UrbanFit Apparel · Mumbai"/></div>
-        <div class="field"><label>Designation</label><input type="text" name="designation" placeholder="Founder"/></div>
+        <div class="field"><label>Heading</label><input type="text" name="heading" value={v('heading','Real World, Real Results')}/></div>
+        <div class="field"><label>Subheading</label><input type="text" name="subheading" value={v('subheading','Founders, CEOs and creators who grew with Mashurban.')}/></div>
+        <div class="field"><label>Label</label><input type="text" name="label" value={v('label','05 — What Clients Say')}/></div>
       </div>
-      <div class="field"><label>Quote</label><textarea name="quote" rows="3" placeholder="What they said about working with Mashurban..." required></textarea></div>
       <div class="grid3">
+        <div class="field"><label>Section BG</label><input type="color" name="section_bg" value={v('section_bg','#0A0A0A')}/></div>
+        <div class="field"><label>Card BG</label><input type="color" name="card_bg" value={v('card_bg','#141414')}/></div>
+        <div class="field"><label>Card Text</label><input type="color" name="card_text" value={v('card_text','#F5F5F0')}/></div>
+        <div class="field"><label>Heading Colour</label><input type="color" name="heading_color" value={v('heading_color','#F5F5F0')}/></div>
+        <div class="field"><label>Subheading Colour</label><input type="color" name="subheading_color" value={v('subheading_color','#666666')}/></div>
+        <div class="field"><label>Carousel Speed (s)</label>
+          <div class="range-row"><input type="range" name="carousel_speed" min="10" max="80" step="5" value={v('carousel_speed','35')} id="cs"/><span class="range-val" id="csv">{v('carousel_speed','35')}s</span></div>
+          <span class="hint">Lower = faster scroll. Hover pauses.</span>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-save">Save Style →</button>
+    </div>
+  </form>
+
+  <!-- Add testimonial -->
+  <form method="POST">
+    <input type="hidden" name="_action" value="add"/>
+    <div class="card">
+      <div class="card-title">Add Testimonial / Video Card</div>
+      <div class="grid2">
+        <div class="field"><label>Client Name</label><input type="text" name="client_name" required/></div>
+        <div class="field"><label>Brand Name</label><input type="text" name="brand_name"/></div>
+        <div class="field"><label>Designation</label><input type="text" name="designation" placeholder="Founder, CEO…"/></div>
+        <div class="field"><label>City</label><input type="text" name="city" placeholder="Mumbai, Delhi…"/></div>
         <div class="field"><label>Service Type</label><input type="text" name="service_type" placeholder="Website + Meta Ads"/></div>
-        <div class="field"><label>Rating (1-5)</label><select name="rating"><option value="5">★★★★★ 5</option><option value="4">★★★★ 4</option><option value="3">★★★ 3</option></select></div>
+        <div class="field"><label>Rating (1–5)</label><input type="number" name="rating" min="1" max="5" value="5"/></div>
         <div class="field"><label>Sort Order</label><input type="number" name="sort_order" value="0"/></div>
       </div>
+      <div class="field"><label>Remark / Quote</label><textarea name="quote" required placeholder="What the client said…"></textarea></div>
       <div class="grid2">
-        <div class="field"><label>Photo URL (optional)</label><input type="url" name="photo_url" placeholder="https://..."/></div>
-        <div class="field"><label>Video URL (optional)</label><input type="url" name="video_url" placeholder="YouTube embed URL"/></div>
+        <div class="field"><label>Photo URL (optional)</label><input type="url" name="photo_url" placeholder="https://…or /images/…"/></div>
+        <div class="field"><label>Video URL (optional — shows as video card)</label><input type="url" name="video_url" placeholder="https://… .mp4 URL"/><span class="hint">Direct .mp4 URL. Video shows in card with play button. If both set, video takes priority.</span></div>
       </div>
-      <button type="submit" class="btn-save">Add Testimonial</button>
-    </form>
-  </div>
-
-  {rows.map((t: any) => (
-    <div class="card">
-      <details>
-        <summary>
-          <div class="row-header" style="display:inline-flex;width:calc(100% - 1rem);justify-content:space-between;align-items:center">
-            <div class="client-info"><strong>{t.client_name}</strong><span>{t.brand_name} · {t.service_type}</span></div>
-            <span class={`active-badge ${t.is_active ? 'on' : 'off'}`}>{t.is_active ? 'Active' : 'Hidden'}</span>
-          </div>
-        </summary>
-        <form method="POST" style="margin-top:1rem">
-          <input type="hidden" name="_action" value="save"/>
-          <input type="hidden" name="id" value={t.id}/>
-          <div class="grid3">
-            <div class="field"><label>Client Name</label><input type="text" name="client_name" value={t.client_name}/></div>
-            <div class="field"><label>Brand</label><input type="text" name="brand_name" value={t.brand_name ?? ''}/></div>
-            <div class="field"><label>Designation</label><input type="text" name="designation" value={t.designation ?? ''}/></div>
-          </div>
-          <div class="field"><label>Quote</label><textarea name="quote" rows="3">{t.quote}</textarea></div>
-          <div class="grid3">
-            <div class="field"><label>Service Type</label><input type="text" name="service_type" value={t.service_type ?? ''}/></div>
-            <div class="field"><label>Rating</label><select name="rating"><option value="5" selected={t.rating===5}>★★★★★ 5</option><option value="4" selected={t.rating===4}>★★★★ 4</option><option value="3" selected={t.rating===3}>★★★ 3</option></select></div>
-            <div class="field"><label>Sort Order</label><input type="number" name="sort_order" value={t.sort_order ?? 0}/></div>
-          </div>
-          <div class="grid2">
-            <div class="field"><label>Photo URL</label><input type="url" name="photo_url" value={t.photo_url ?? ''}/></div>
-            <div class="field"><label>Video URL</label><input type="url" name="video_url" value={t.video_url ?? ''}/></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:.5rem;margin-top:.5rem">
-            <label style="display:flex;align-items:center;gap:.375rem;font-size:.8125rem;cursor:pointer">
-              <input type="checkbox" name="is_active" checked={t.is_active} style="accent-color:#FF3B00"/> Active (show on site)
-            </label>
-          </div>
-          <button type="submit" class="btn-save">Save Changes</button>
-        </form>
-      </details>
+      <button type="submit" class="btn btn-save">Add Testimonial →</button>
     </div>
-  ))}
+  </form>
+
+  <!-- Existing testimonials -->
+  <div class="card">
+    <div class="card-title">All Testimonials ({testimonials.length})</div>
+    {testimonials.length === 0 && <p class="hint">No testimonials yet. Add one above.</p>}
+    {testimonials.map((t: any) => (
+      <div class="t-row">
+        <div>
+          <div class="t-name">{t.client_name}</div>
+          <div class="t-meta">{t.brand_name} · {t.city} · ⭐{t.rating}</div>
+          <div class="t-meta" style="margin-top:.2rem;font-style:italic;opacity:.8">"{t.quote?.slice(0,60)}…"</div>
+        </div>
+        <div class="t-meta">
+          {t.service_type && <span style="background:#fff5f3;color:#FF3B00;padding:.2rem .5rem;border-radius:6px;font-size:.65rem;font-weight:700;">{t.service_type}</span>}
+          {t.video_url && <span style="margin-left:.4rem;background:#f0fdf4;color:#166534;padding:.2rem .5rem;border-radius:6px;font-size:.65rem;font-weight:700;">▶ VIDEO</span>}
+        </div>
+        <form method="POST" onsubmit="return confirm('Delete this testimonial?')">
+          <input type="hidden" name="_action" value="delete"/>
+          <input type="hidden" name="id" value={t.id}/>
+          <button type="submit" class="btn btn-del">Delete</button>
+        </form>
+      </div>
+    ))}
+  </div>
 </main>
+<script>
+  const r = document.getElementById('cs');
+  const o = document.getElementById('csv');
+  r?.addEventListener('input', () => { if(o) o.textContent = (r as HTMLInputElement).value + 's'; });
+</script>
 </body></html>

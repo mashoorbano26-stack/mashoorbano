@@ -3,9 +3,10 @@
 // Full granular control: each of the 4 elements (MASHOOR, BANO, Circle, Marquee)
 // has size, X/Y position, and colour controls.
 export const prerender = false;
-import { makeServerClient, supabaseAdmin } from '@/lib/supabase';
+import { makeServerClient, getAdmin } from '@/lib/supabase';
 
 const supabase = makeServerClient(Astro.cookies);
+const supabaseAdmin = getAdmin(Astro.locals);
 const { data: { session } } = await supabase.auth.getSession();
 if (!session) return Astro.redirect('/admin/login');
 

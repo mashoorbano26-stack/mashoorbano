@@ -2,7 +2,8 @@
 // src/components/sections/Services.astro
 // Image cards: upper half = thumbnail/icon visual, lower half = service name + desc + learn more
 // All content + colours from admin panel
-import { supabaseAdmin } from '@/lib/supabase';
+import { getAdmin } from '@/lib/supabase';
+const supabaseAdmin = getAdmin(Astro.locals);
 
 interface Service {
   icon: string; name: string; desc: string; href: string;

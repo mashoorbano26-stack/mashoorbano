@@ -7,7 +7,8 @@
 //  - Subheadline has X/Y placement controls
 //  - All previous controls (size/position/colour per element) retained
 
-import { supabaseAdmin } from '@/lib/supabase';
+import { getAdmin } from '@/lib/supabase';
+const supabaseAdmin = getAdmin(Astro.locals);
 
 interface HeroContent { [key: string]: string | undefined; }
 
@@ -94,7 +95,7 @@ const orbText = (orbitalRaw.trim() + ' ').repeat(8);
 const pid = 'op' + Math.random().toString(36).slice(2, 7);
 ---
 
-<section id="hero" class="hero-section" style={`position:relative;min-height:100vh;overflow:hidden;background:${bgColor};`}>
+<section id="hero" class="hero-section" style={`position:relative;min-height:100vh;height:100vh;overflow:hidden;background:${bgColor};`}>
 
   <!-- Meta labels -->
   <div style={`position:absolute;top:5.5rem;left:2rem;z-index:5;display:flex;flex-direction:column;gap:.3rem;color:${textColor};opacity:.2;font-size:.58rem;letter-spacing:.22em;text-transform:uppercase;font-family:Inter,sans-serif;`}>
@@ -123,15 +124,6 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
         <defs>
           <path id={pid} d="M130,130 m-104,0 a104,104 0 1,1 208,0 a104,104 0 1,1 -208,0" fill="none"/>
         </defs>
-        <g>
-          <text font-size={orbSize} font-family="'Space Grotesk',sans-serif" font-weight="700" fill={orbColor} letter-spacing="4">
-            <textPath href={`#${pid}`} startOffset="0">{orbText}</textPath>
-          </text>
-          <!-- Seamless: rotate the whole group 360° forever, no start/end jump -->
-          <animateTransform attributeName="transform" type="rotate"
-            from="0 130 130" to="360 130 130"
-            dur={`${orbSpeed}s`} repeatCount="indefinite"/>
-        </g>
       </svg>
 
       <!-- VIDEO inside circle: file / youtube / instagram -->
@@ -241,6 +233,11 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
     70%       { transform: scaleY(1); transform-origin: bottom; opacity: 1; }
     100%      { transform: scaleY(0); transform-origin: bottom; opacity: 0; }
   }
+  @keyframes orbSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  .orb-text { will-change: transform; }
 </style>
 
 <script define:vars={{ autoSec, vidType: vid.type, fileUrl: vid.type === 'file' ? vid.url : '', ytFull, igEmbed }}>

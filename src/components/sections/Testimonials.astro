@@ -4,7 +4,8 @@
 // Carousel with prev/next arrows + infinite RTL auto-scroll
 // All content + colours from admin panel
 
-import { supabaseAdmin } from '@/lib/supabase';
+import { getAdmin } from '@/lib/supabase';
+const supabaseAdmin = getAdmin(Astro.locals);
 
 interface Testimonial {
   id: string;

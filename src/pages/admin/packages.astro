@@ -1,8 +1,9 @@
 ---
 // src/pages/admin/packages.astro — full CRUD for packages table
 export const prerender = false;
-import { makeServerClient, supabaseAdmin } from '@/lib/supabase';
+import { makeServerClient, getAdmin } from '@/lib/supabase';
 const supabase = makeServerClient(Astro.cookies);
+const supabaseAdmin = getAdmin(Astro.locals);
 const { data: { session } } = await supabase.auth.getSession();
 if (!session) return Astro.redirect('/admin/login');
 

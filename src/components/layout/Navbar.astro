@@ -2,7 +2,8 @@
 // src/components/layout/Navbar.astro
 // Reads navbar config from site_content (page='settings', section='navbar')
 // Controls: logo (text/image), menu items, sizes, colours, sticky, CTA
-import { supabaseAdmin } from '@/lib/supabase';
+import { getAdmin } from '@/lib/supabase';
+const supabaseAdmin = getAdmin(Astro.locals);
 
 interface NavContent { [key: string]: any; }
 let c: NavContent = {};

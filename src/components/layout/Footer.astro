@@ -1,7 +1,8 @@
 ---
 // src/components/layout/Footer.astro
 // Fetches global settings from Supabase for email/phone/social links
-import { supabaseAdmin } from '@/lib/supabase';
+import { getAdmin } from '@/lib/supabase';
+const supabaseAdmin = getAdmin(Astro.locals);
 
 interface GlobalSettings {
   email?: string; phone?: string; whatsapp?: string;

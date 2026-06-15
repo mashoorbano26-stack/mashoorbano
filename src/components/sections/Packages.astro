@@ -1,7 +1,8 @@
 ---
 // src/components/sections/Packages.astro
 // Redesigned: centred heading, contrast hover colour change on packages, all from admin
-import { supabaseAdmin } from '@/lib/supabase';
+import { getAdmin } from '@/lib/supabase';
+const supabaseAdmin = getAdmin(Astro.locals);
 
 interface Package {
   id: string; name: string; tagline: string | null;

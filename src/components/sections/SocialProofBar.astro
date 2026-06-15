@@ -2,7 +2,8 @@
 // src/components/sections/SocialProofBar.astro
 // Orange background ticker bar with white scrolling text
 // Text and stats managed from admin panel (site_content page=home section=stats)
-import { supabaseAdmin } from '@/lib/supabase';
+import { getAdmin } from '@/lib/supabase';
+const supabaseAdmin = getAdmin(Astro.locals);
 
 interface StatsContent {
   marquee_text?: string;

@@ -1,7 +1,8 @@
 ---
 // src/components/sections/ContactSection.astro
 // Fetches global settings (phone/email/whatsapp) from Supabase site_content
-import { supabaseAdmin } from '@/lib/supabase';
+import { getAdmin } from '@/lib/supabase';
+const supabaseAdmin = getAdmin(Astro.locals);
 
 interface GlobalSettings {
   email?: string;
