@@ -3,77 +3,89 @@
 export const prerender = false;
 import { makeServerClient } from '@/lib/supabase';
 
-const supabase = makeServerClient(Astro.cookies);
-const { data: { session } } = await supabase.auth.getSession();
-if (session) return Astro.redirect('/admin');
-
 let error = '';
-if (Astro.request.method === 'POST') {
-  const form     = await Astro.request.formData();
-  const email    = form.get('email')?.toString().trim() ?? '';
-  const password = form.get('password')?.toString() ?? '';
-  if (!email || !password) {
-    error = 'Email and password are required.';
-  } else {
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
-    if (authError) { error = authError.message; }
-    else { return Astro.redirect('/admin'); }
+let envMissing = false;
+
+const supabaseUrl  = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnon) {
+  envMissing = true;
+}
+
+if (!envMissing && Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  const email    = f.get('email')?.toString()    ?? '';
+  const password = f.get('password')?.toString() ?? '';
+  try {
+    const supabase = makeServerClient(Astro.cookies);
+    const { error: e } = await supabase.auth.signInWithPassword({ email, password });
+    if (e) error = e.message;
+    else return Astro.redirect('/admin');
+  } catch (err) {
+    error = 'Login failed — check environment variables.';
   }
 }
 ---
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Admin Login — Mashurban</title>
-  <meta name="robots" content="noindex,nofollow" />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    body{min-height:100vh;background:linear-gradient(135deg,#f8f6f3 0%,#ede9e4 100%);display:flex;align-items:center;justify-content:center;font-family:Inter,sans-serif;color:#1a1a1a}
-    .wrapper{width:100%;max-width:420px;padding:1.5rem}
-    .logo-row{display:flex;align-items:center;gap:.625rem;margin-bottom:2.5rem}
-    .logo-dot{width:32px;height:32px;background:#FF3B00;border-radius:8px}
-    .logo-text{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.25rem;color:#1a1a1a;letter-spacing:-.02em}
-    .card{background:#fff;border:1px solid #e5e0d8;border-radius:20px;padding:2.5rem;box-shadow:0 4px 32px rgba(0,0,0,.06)}
-    h1{font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:700;color:#1a1a1a;margin-bottom:.375rem;letter-spacing:-.02em}
-    .subtitle{color:#888;font-size:.875rem;margin-bottom:2rem}
-    .field{margin-bottom:1.25rem}
-    label{display:block;font-size:.8125rem;font-weight:500;color:#555;margin-bottom:.5rem}
-    input[type=email],input[type=password]{width:100%;background:#f8f6f3;border:1.5px solid #e5e0d8;border-radius:10px;padding:.75rem 1rem;color:#1a1a1a;font-size:.9375rem;font-family:inherit;outline:none;transition:border-color .2s,box-shadow .2s}
-    input:focus{border-color:#FF3B00;box-shadow:0 0 0 3px rgba(255,59,0,.08);background:#fff}
-    .error-box{background:#fff5f3;border:1.5px solid #ffc4b8;border-radius:10px;padding:.75rem 1rem;font-size:.875rem;color:#c0392b;margin-bottom:1.25rem;display:flex;align-items:center;gap:.5rem}
-    .btn{display:block;width:100%;margin-top:1.75rem;padding:.875rem;background:#FF3B00;color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.9375rem;border:none;border-radius:10px;cursor:pointer;transition:background .2s,transform .1s;letter-spacing:-.01em}
-    .btn:hover{background:#e03200}
-    .btn:active{transform:scale(.99)}
-    .back-link{display:block;text-align:center;margin-top:1.5rem;font-size:.8125rem;color:#999;text-decoration:none;transition:color .2s}
-    .back-link:hover{color:#FF3B00}
+    body{background:#0A0A0A;color:#F5F5F0;font-family:Inter,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;}
+    .card{background:#141414;border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:2.5rem;width:100%;max-width:400px;}
+    h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.5rem;margin-bottom:.375rem;}
+    .sub{color:#666;font-size:.875rem;margin-bottom:2rem;}
+    .field{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1.25rem;}
+    label{font-size:.7rem;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.08em;}
+    input{background:#1e1e1e;border:1.5px solid rgba(255,255,255,.1);border-radius:10px;padding:.75rem 1rem;color:#F5F5F0;font-size:.9375rem;font-family:inherit;outline:none;transition:border-color .2s;width:100%;}
+    input:focus{border-color:#FF3B00;}
+    .btn{width:100%;padding:.875rem;background:#FF3B00;color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.9375rem;border:none;border-radius:12px;cursor:pointer;margin-top:.5rem;transition:background .2s;}
+    .btn:hover{background:#e03200;}
+    .err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#fca5a5;border-radius:10px;padding:.75rem 1rem;font-size:.875rem;margin-bottom:1.25rem;}
+    .warn{background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.3);color:#fde047;border-radius:10px;padding:.875rem 1rem;font-size:.8125rem;line-height:1.6;}
+    .warn code{background:rgba(255,255,255,.08);padding:.1rem .35rem;border-radius:4px;font-size:.75rem;}
+    .logo{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.125rem;margin-bottom:1.5rem;}
+    .logo span{color:#FF3B00;}
   </style>
 </head>
 <body>
-  <div class="wrapper">
-    <div class="logo-row">
-      <div class="logo-dot"></div>
-      <span class="logo-text">Mashurban</span>
-    </div>
-    <div class="card">
-      <h1>Welcome back</h1>
-      <p class="subtitle">Sign in to your admin panel</p>
-      {error && <div class="error-box" role="alert"><span>⚠</span> {error}</div>}
-      <form method="POST">
-        <div class="field">
-          <label for="email">Email address</label>
-          <input id="email" name="email" type="email" autocomplete="email" required autofocus placeholder="you@mashurban.com" />
-        </div>
-        <div class="field">
-          <label for="password">Password</label>
-          <input id="password" name="password" type="password" autocomplete="current-password" required placeholder="••••••••" />
-        </div>
-        <button class="btn" type="submit">Sign in →</button>
-      </form>
-    </div>
-    <a href="/" class="back-link">← Back to website</a>
+  <div class="card">
+    <div class="logo">Mash<span>urban</span> Admin</div>
+    <h1>Sign in</h1>
+    <p class="sub">Enter your admin credentials to continue</p>
+
+    {envMissing && (
+      <div class="warn">
+        ⚠ <strong>Supabase environment variables not configured.</strong><br/><br/>
+        Add these in Cloudflare Pages → Settings → Environment Variables:<br/><br/>
+        <code>PUBLIC_SUPABASE_URL</code><br/>
+        <code>PUBLIC_SUPABASE_ANON_KEY</code><br/>
+        <code>SUPABASE_SERVICE_ROLE_KEY</code><br/><br/>
+        Find them in your Supabase project → Settings → API
+      </div>
+    )}
+
+    {!envMissing && (
+      <>
+        {error && <div class="err">⚠ {error}</div>}
+        <form method="POST">
+          <div class="field">
+            <label>Email</label>
+            <input type="email" name="email" required autocomplete="email" placeholder="admin@mashurban.com"/>
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input type="password" name="password" required autocomplete="current-password" placeholder="••••••••"/>
+          </div>
+          <button type="submit" class="btn">Sign in →</button>
+        </form>
+      </>
+    )}
   </div>
 </body>
 </html>
