@@ -8,7 +8,9 @@
 //  - All previous controls (size/position/colour per element) retained
 
 import { getAdmin } from '@/lib/supabase';
+import { loadTheme } from '@/lib/theme';
 const supabaseAdmin = getAdmin(Astro.locals);
+const theme = await loadTheme(supabaseAdmin);
 
 interface HeroContent { [key: string]: string | undefined; }
 
@@ -86,14 +88,16 @@ const ctaPrimary   = c.cta_primary_label ?? 'See Packages';
 const ctaSecond    = c.cta_secondary_label ?? 'Book a Free Call';
 const textColor    = c.text_color       ?? '#F5F5F0';
 const accentColor  = c.accent_color     ?? '#FF3B00';
-const bgColor      = c.bg_color         ?? '#0A0A0A';
+const bgColor      = theme.hero_bg ?? c.bg_color ?? '#0A0A0A';
 const meta1        = c.meta_line1       ?? 'Digital Agency';
 const meta2        = c.meta_line2       ?? "India's Bold Brands";
 const meta3        = c.meta_line3       ?? 'Est. 2024';
 const autoSec      = parseInt(c.auto_expand_seconds ?? '0');
 
 // Repeat marquee text many times so it fully fills the circle (seamless spin)
-const orbText = (orbitalRaw.trim() + ' ').repeat(8);
+// Normalise separators: accept both · and . then rejoin with ·
+const orbNormalised = orbitalRaw.split(/[·.]/).map(x=>x.trim()).filter(Boolean).join(' · ');
+const orbText = ((orbNormalised || orbitalRaw).trim() + ' · ').repeat(8);
 const pid = 'op' + Math.random().toString(36).slice(2, 7);
 ---
 
@@ -288,9 +292,15 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
 
   if (autoSec > 0) {
-    const t = setTimeout(() => { if (!fullscreen.style.opacity || fullscreen.style.opacity === '0') open(); }, autoSec * 1000);
+    const t = setTimeout(() => {
+      if (!fullscreen.style.opacity || fullscreen.style.opacity === '0') open();
+    }, autoSec * 1000);
     closeBtn.addEventListener('click', () => clearTimeout(t), { once: true });
-    window.addEventListener('scroll', () => clearTimeout(t), { once: true });
+    // Only cancel if user scrolls MORE than 150px (ignore tiny load-time scrolls)
+    const onScroll = () => {
+      if (window.scrollY > 150) { clearTimeout(t); window.removeEventListener('scroll', onScroll); }
+    };
+    window.addEventListener('scroll', onScroll);
   }
 })();
 </script>

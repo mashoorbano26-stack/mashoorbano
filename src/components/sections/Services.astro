@@ -3,7 +3,9 @@
 // Image cards: upper half = thumbnail/icon visual, lower half = service name + desc + learn more
 // All content + colours from admin panel
 import { getAdmin } from '@/lib/supabase';
+import { loadTheme } from '@/lib/theme';
 const supabaseAdmin = getAdmin(Astro.locals);
+const theme = await loadTheme(supabaseAdmin);
 
 interface Service {
   icon: string; name: string; desc: string; href: string;
@@ -73,13 +75,13 @@ if (!services.length) {
   ];
 }
 
-const sectionBg  = cfg.section_bg               ?? '#F7F5F2';
+const sectionBg  = theme.services_bg ?? cfg.section_bg ?? '#F7F5F2';
 const heading    = cfg.heading                  ?? 'What We Do';
 const subheading = cfg.subheading               ?? 'Six services. One agency. Zero excuses.';
 const label      = cfg.label                   ?? '02 — Services';
-const hColor     = cfg.heading_color            ?? '#1A1A1A';
+const hColor     = theme.services_heading ?? cfg.heading_color ?? '#1A1A1A';
 const sColor     = cfg.subheading_color         ?? '#888888';
-const defCardBg  = cfg.default_card_bg          ?? '#FFFFFF';
+const defCardBg  = theme.services_card_bg ?? cfg.default_card_bg ?? '#FFFFFF';
 const defCardTxt = cfg.default_card_text        ?? '#1A1A1A';
 const defHoverBg = cfg.default_card_hover_bg    ?? '#FF3B00';
 const defHoverTxt= cfg.default_card_hover_text  ?? '#FFFFFF';

@@ -2,7 +2,9 @@
 // src/components/sections/StartupStory.astro
 // Fetches from site_content (page=home, section=story) — editable from admin panel.
 import { getAdmin } from '@/lib/supabase';
+import { loadTheme } from '@/lib/theme';
 const supabaseAdmin = getAdmin(Astro.locals);
+const theme = await loadTheme(supabaseAdmin);
 
 interface StoryContent {
   headline?: string;
@@ -25,13 +27,15 @@ try {
 } catch {}
 
 const headline   = story.headline   ?? 'Why Mashurban exists';
+const storyBg    = theme.story_bg ?? story.bg_color ?? '#0A0A0A';
+const storyText  = theme.story_text ?? story.text_color ?? '#F5F5F0';
 const body       = story.body       ?? 'We got tired of agencies that charged a fortune and delivered generic. Every brand we met was paying lakhs for cookie-cutter websites and ads that burned budget without results.\n\nSo we built Mashurban — a studio that does everything a growing brand needs, without the fluff. One team, one roof, one goal: make your brand actually work.\n\nWe\'re builders, not account managers. We obsess over your numbers the same way we obsess over ours.';
 const pullQuote  = story.pull_quote ?? 'Your brand deserves better than templates and jargon.';
 const author     = story.author     ?? 'Founder, Mashurban';
 const paragraphs = body.split('\n\n').filter(Boolean);
 ---
 
-<section id="story" class="py-24 px-6 md:px-12" style="background:#0A0A0A;">
+<section id="story" class="py-24 px-6 md:px-12" style={`background:${storyBg};color:${storyText};`}>
   <div class="max-w-7xl mx-auto">
     <div class="section-label reveal">03 — Our story</div>
 

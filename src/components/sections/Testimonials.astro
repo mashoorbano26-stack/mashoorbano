@@ -5,7 +5,9 @@
 // All content + colours from admin panel
 
 import { getAdmin } from '@/lib/supabase';
+import { loadTheme } from '@/lib/theme';
 const supabaseAdmin = getAdmin(Astro.locals);
+const theme = await loadTheme(supabaseAdmin);
 
 interface Testimonial {
   id: string;
@@ -58,11 +60,11 @@ if (!testimonials.length) {
   ];
 }
 
-const sectionBg  = cfg.section_bg       ?? '#0A0A0A';
+const sectionBg  = theme.testimonials_bg ?? cfg.section_bg ?? '#0A0A0A';
 const heading    = cfg.heading          ?? 'Real World, Real Results';
 const subheading = cfg.subheading       ?? 'Founders, CEOs and creators who grew with Mashurban.';
 const label      = cfg.label           ?? '05 — What Clients Say';
-const hColor     = cfg.heading_color    ?? '#F5F5F0';
+const hColor     = theme.testimonials_heading ?? cfg.heading_color ?? '#F5F5F0';
 const sColor     = cfg.subheading_color ?? '#666666';
 const speed      = parseFloat(cfg.carousel_speed ?? '40');
 
