@@ -1,22 +1,16 @@
-# wrangler.toml — Cloudflare Pages config
+# wrangler.toml
 name = "mashurban"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
+# Explicitly bind all env vars to the Pages Function worker
+# This is required for non-PUBLIC_ variables to reach SSR runtime
+[vars]
+PUBLIC_SUPABASE_URL = ""
+PUBLIC_SUPABASE_ANON_KEY = ""
+# SUPABASE_SERVICE_ROLE_KEY is a secret — set via Cloudflare dashboard
+# Do NOT put the actual value here — this just declares it exists
+
 [build]
 command   = "npm run build"
 directory = "dist"
-
-[[redirects]]
-from   = "/admin"
-to     = "/admin/index.html"
-status = 200
-
-[[headers]]
-for = "/*"
-[headers.values]
-X-Frame-Options              = "DENY"
-X-Content-Type-Options       = "nosniff"
-Referrer-Policy              = "strict-origin-when-cross-origin"
-Strict-Transport-Security    = "max-age=31536000; includeSubDomains"
-Permissions-Policy           = "camera=(), microphone=(), geolocation=()"
