@@ -46,6 +46,8 @@ if (Astro.request.method === 'POST') {
     words_gap:           get('words_gap', 'clamp(5rem,11vw,11rem)'),
     tagline:             get('tagline', 'Making your BRAND Famous'),
     tagline_color:       get('tagline_color', '#FFFFFF'),
+    tagline_bg:          get('tagline_bg', '#FF3B00'),
+    tagline_box_text:    get('tagline_box_text', '#FFFFFF'),
     tagline_size:        get('tagline_size', 'clamp(.85rem,1.3vw,1.1rem)'),
     subheadline:         get('subheadline'),
     sub_offset_x:        get('sub_offset_x', '0'),
@@ -250,8 +252,8 @@ const v = (k: string, d: string) => c[k] ?? d;
         </div>
       </div>
       <div class="field">
-        <label>Marquee Size on Hover (how much bigger the moving ring grows)</label>
-        <div class="range-row"><input type="range" name="marquee_hover_scale" min="1" max="2.5" step="0.05" value={v('marquee_hover_scale','1.35')} id="mhs"/><span class="range-val" id="mhsv">{v('marquee_hover_scale','1.35')}×</span></div>
+        <label>Marquee Ring Size on Hover (the elegant ring that appears around the arrow)</label>
+        <div class="range-row"><input type="range" name="marquee_hover_scale" min="1" max="2.5" step="0.05" value={v('marquee_hover_scale','1.5')} id="mhs"/><span class="range-val" id="mhsv">{v('marquee_hover_scale','1.5')}×</span></div>
         <span class="hint">On hover the orange arrow appears in the centre and the moving marquee ring grows to this size around it. 1× = no growth, 2× = double size.</span>
       </div>
     </div>
@@ -267,7 +269,11 @@ const v = (k: string, d: string) => c[k] ?? d;
       <div class="card-title" style="font-size:.8125rem;margin-bottom:.75rem;margin-top:.25rem">Tagline <span class="badge">appears above subheadline</span></div>
       <div class="grid3">
         <div class="field" style="grid-column:span 2"><label>Tagline Text</label><input type="text" name="tagline" value={v('tagline','Making your BRAND Famous')}/></div>
-        <div class="field"><label>Colour</label><input type="color" name="tagline_color" value={v('tagline_color','#FFFFFF')}/></div>
+        <div class="field"><label>Text Colour</label><input type="color" name="tagline_box_text" value={v('tagline_box_text','#FFFFFF')}/></div>
+      </div>
+      <div class="grid3">
+        <div class="field"><label>Box Background (orange)</label><input type="color" name="tagline_bg" value={v('tagline_bg','#FF3B00')}/></div>
+        <div class="field" style="grid-column:span 2"><label>Legacy text colour (unused in box mode)</label><input type="color" name="tagline_color" value={v('tagline_color','#FFFFFF')}/></div>
       </div>
       <div class="field">
         <label>Tagline Font Size (CSS)</label>
