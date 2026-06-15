@@ -58,5 +58,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  // Prevent stale HTML — SSR content must always be fresh
+  const ct = response.headers.get('content-type') ?? '';
+  if (ct.includes('text/html')) {
+    response.headers.set('Cache-Control', 'no-store, must-revalidate');
+  }
   return response;
 });
