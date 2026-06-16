@@ -72,10 +72,14 @@ const word2OffsetY = c.word2_offset_y   ?? '0';
 // ── CIRCLE ──
 const circleSize   = c.circle_size      ?? 'clamp(150px,17vw,260px)';
 const circleBorder = c.circle_border_color ?? '#FFFFFF';
-// circle_border_enabled: NEW toggle. Default 'true' = unchanged behaviour for existing sites.
-// Set to 'false' in admin to permanently remove the static border (at rest AND on hover),
-// so the spinning marquee ring is the ONLY ring around the video — no orange competing with it.
-const circleBorderOn = (c.circle_border_enabled ?? 'true') !== 'false';
+// circle_border_enabled: DEFAULT NOW FLIPPED TO OFF.
+// This was previously defaulting to 'true' (border ON) unless an admin
+// found and unchecked a specific checkbox — meaning the orange ring kept
+// showing regardless of any hover-state fix, since nothing ever disabled
+// the border itself. Now it's off by default: the spinning marquee ring
+// (already correctly rendering, sitting right at the video's edge) is the
+// ONLY ring around the video unless this is explicitly turned back on.
+const circleBorderOn = c.circle_border_enabled === 'true';
 const circleBorderW= circleBorderOn ? (c.circle_border_width ?? '2') : '0';
 const circleOffsetX= c.circle_offset_x  ?? '0';
 const circleOffsetY= c.circle_offset_y  ?? '0';

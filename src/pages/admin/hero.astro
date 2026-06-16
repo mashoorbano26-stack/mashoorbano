@@ -33,6 +33,7 @@ if (Astro.request.method === 'POST') {
     video_url:           get('video_url'),
     circle_size:         get('circle_size', 'clamp(150px,17vw,260px)'),
     circle_border_color: get('circle_border_color', '#FFFFFF'),
+    circle_border_enabled: get('circle_border_enabled', 'false'), // NEW: checkbox — absent in form data = unchecked = 'false'
     circle_border_width: get('circle_border_width', '2'),
     circle_offset_x:     get('circle_offset_x', '0'),
     circle_offset_y:     get('circle_offset_y', '0'),
@@ -222,9 +223,24 @@ const v = (k: string, d: string) => c[k] ?? d;
         <div class="field">
           <label>Border / Strip Colour</label>
           <input type="color" name="circle_border_color" value={v('circle_border_color','#FFFFFF')}/>
-          <span class="hint">The ring around the video (white = Amsterdam style)</span>
+          <span class="hint">The ring around the video (white = Amsterdam style). Only applies if the toggle below is ON.</span>
         </div>
       </div>
+
+      <!-- Show/hide the static border ring entirely — OFF by default now -->
+      <div class="field" style="background:#fff5f3;border:1px solid #ffd9cc;border-radius:10px;padding:.875rem 1rem;">
+        <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;text-transform:none;font-size:.8125rem;color:#1A1A1A;">
+          <input type="checkbox" name="circle_border_enabled" value="true"
+            checked={v('circle_border_enabled','false') === 'true'}
+            style="width:18px;height:18px;accent-color:#FF3B00;cursor:pointer;"/>
+          Show solid border ring around the video <span class="badge">off by default</span>
+        </label>
+        <span class="hint" style="margin-top:.5rem;display:block;">
+          <b>Unchecked (default):</b> no solid border — the spinning marquee text is the only ring around the video.<br/>
+          <b>Checked:</b> adds back a solid coloured border using the colour/width below, in addition to the marquee.
+        </span>
+      </div>
+
       <div class="field">
         <label>Border Width (px)</label>
         <div class="range-row"><input type="range" name="circle_border_width" min="0" max="12" step="1" value={v('circle_border_width','2')} id="cbw"/><span class="range-val" id="cbwv">{v('circle_border_width','2')}px</span></div>
