@@ -54,10 +54,13 @@ if (Astro.request.method === 'POST') {
     tagline_offset_x:    get('tagline_offset_x', '0'),   // NEW
     tagline_offset_y:    get('tagline_offset_y', '0'),   // NEW
     subheadline:         get('subheadline'),
+    subheadline_color:   get('subheadline_color', '#FFFFFF'),  // NEW: pure white, was riding on faded text_color
     sub_offset_x:        get('sub_offset_x', '0'),
     sub_offset_y:        get('sub_offset_y', '0'),
     cta_primary_label:   get('cta_primary_label', 'See Packages'),
     cta_secondary_label: get('cta_secondary_label', 'Book a Free Call'),
+    cta_secondary_bg:        get('cta_secondary_bg', '#FFFFFF'),        // NEW: solid white box
+    cta_secondary_text_color: get('cta_secondary_text_color', '#000000'), // NEW: black text
     text_color:          get('text_color', '#F5F5F0'),
     accent_color:        get('accent_color', '#FF3B00'),
     bg_color:            get('bg_color', '#0A0A0A'),
@@ -336,7 +339,11 @@ const v = (k: string, d: string) => c[k] ?? d;
 
       <hr class="divider"/>
 
-      <div class="field"><label>Subheadline</label><input type="text" name="subheadline" value={v('subheadline','Websites · Merch · Content · Meta Ads · Google Ads')}/></div>
+      <div class="grid3">
+        <div class="field" style="grid-column:span 2"><label>Subheadline</label><input type="text" name="subheadline" value={v('subheadline','Websites · Merch · Content · Meta Ads · Google Ads')}/></div>
+        <div class="field"><label>Colour <span class="badge">new</span></label><input type="color" name="subheadline_color" value={v('subheadline_color','#FFFFFF')}/></div>
+      </div>
+      <span class="hint" style="display:block;margin:-.4rem 0 .75rem;">Now renders at full opacity — set to pure white (#FFFFFF) by default. Previously this text rode on the faded Body Text colour, which is why it always looked grey.</span>
       <div class="pos-note">📍 Move the subheadline line up/down/left/right just like the words. 0 = default centred.</div>
       <div class="grid2">
         <div class="field"><label>Subheadline Position (X)</label>
@@ -349,8 +356,16 @@ const v = (k: string, d: string) => c[k] ?? d;
 
       <div class="grid2">
         <div class="field"><label>Primary CTA</label><input type="text" name="cta_primary_label" value={v('cta_primary_label','See Packages')}/></div>
-        <div class="field"><label>Secondary CTA</label><input type="text" name="cta_secondary_label" value={v('cta_secondary_label','Book a Free Call')}/></div>
+        <div class="field"><label>Secondary CTA <span class="badge">now opens WhatsApp</span></label><input type="text" name="cta_secondary_label" value={v('cta_secondary_label','Book a Free Call')}/></div>
       </div>
+      <div class="grid2">
+        <div class="field"><label>Secondary CTA Background</label><input type="color" name="cta_secondary_bg" value={v('cta_secondary_bg','#FFFFFF')}/></div>
+        <div class="field"><label>Secondary CTA Text Colour</label><input type="color" name="cta_secondary_text_color" value={v('cta_secondary_text_color','#000000')}/></div>
+      </div>
+      <span class="hint" style="display:block;margin:-.25rem 0 .75rem;">
+        This button now opens WhatsApp directly, pre-filled with "Hi! I'd like to book a free call with Mashurban."<br/>
+        It uses the <b>same WhatsApp number set in Admin → Settings → WhatsApp Number</b> — update it there, not here, so it stays in sync with the Footer and Contact section.
+      </span>
       <div class="grid4">
         <div class="field"><label>Background</label><input type="color" name="bg_color" value={v('bg_color','#0A0A0A')}/></div>
         <div class="field"><label>Body Text</label><input type="color" name="text_color" value={v('text_color','#F5F5F0')}/></div>

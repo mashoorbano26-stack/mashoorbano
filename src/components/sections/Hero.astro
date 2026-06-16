@@ -95,10 +95,13 @@ const taglineOffsetY = c.tagline_offset_y ?? '0'; // NEW: admin-controlled Y pos
 // ── GENERAL ──
 const wordsGap     = c.words_gap        ?? 'clamp(5rem,11vw,11rem)';
 const subheadline  = c.subheadline      ?? 'Websites · Merch · Content · Meta Ads · Google Ads';
+const subColor     = c.subheadline_color ?? '#FFFFFF'; // NEW: pure white by default, was riding on faded textColor before
 const subOffsetX   = c.sub_offset_x     ?? '0';
 const subOffsetY   = c.sub_offset_y     ?? '0';
 const ctaPrimary   = c.cta_primary_label ?? 'See Packages';
 const ctaSecond    = c.cta_secondary_label ?? 'Book a Free Call';
+const ctaSecondBg  = c.cta_secondary_bg ?? '#FFFFFF';   // NEW: solid white box
+const ctaSecondText= c.cta_secondary_text_color ?? '#000000'; // NEW: black text
 const textColor    = c.text_color       ?? '#F5F5F0';
 const accentColor  = c.accent_color     ?? '#FF3B00';
 const bgColor      = theme.hero_bg ?? c.bg_color ?? '#0A0A0A';
@@ -106,6 +109,22 @@ const meta1        = c.meta_line1       ?? 'Digital Agency';
 const meta2        = c.meta_line2       ?? "India's Bold Brands";
 const meta3        = c.meta_line3       ?? 'Est. 2024';
 const autoSec      = parseInt(c.auto_expand_seconds ?? '0');
+
+// ── WhatsApp link for the secondary CTA ──
+// Reuses the SAME global number set in Admin → Settings → WhatsApp Number
+// (the exact field already used by Footer.astro and ContactSection.astro) —
+// no duplicate data entry, single source of truth.
+let waNumber = '917814718340';
+try {
+  const { data: settingsRow } = await supabaseAdmin
+    .from('site_content')
+    .select('content')
+    .eq('page', 'settings')
+    .eq('section', 'global')
+    .single();
+  if (settingsRow?.content?.whatsapp) waNumber = settingsRow.content.whatsapp;
+} catch {}
+const waHref = `https://wa.me/${waNumber}?text=${encodeURIComponent("Hi! I'd like to book a free call with Mashurban.")}`;
 
 // Marquee text: normalise separators → repeat 8× to fully fill the circle path
 const orbNormalised = orbitalRaw.split(/[·.]/).map(x => x.trim()).filter(Boolean).join(' · ');
@@ -183,8 +202,11 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
         </g>
       </svg>
 
-      <!-- VIDEO inside circle: file / youtube / instagram -->
-      <div style={`position:absolute;inset:14%;border-radius:50%;overflow:hidden;border:${circleBorderW}px solid ${circleBorder};background:#000;`}>
+      <!-- VIDEO inside circle: file / youtube / instagram.
+           class="hero-video-frame" lets the hover CSS below force this border
+           to pure white on hover — regardless of whatever colour is set at rest —
+           so hovering always reads as "white ring", matching the marquee. -->
+      <div class="hero-video-frame" style={`position:absolute;inset:14%;border-radius:50%;overflow:hidden;border:${circleBorderW}px solid ${circleBorder};background:#000;transition:border-color .4s ease;`}>
         {vid.type === 'file' && (
           <video id="heroCircleVid" style="width:100%;height:100%;object-fit:cover;display:block;" src={vid.url} autoplay muted loop playsinline preload="auto"/>
         )}
@@ -257,11 +279,11 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
 
   <!-- Subheadline (X/Y placement) + CTAs — tagline is now separate above -->
   <div style={`position:absolute;bottom:clamp(2.5rem,10vh,6rem);left:50%;transform:translateX(-50%);z-index:10;display:flex;flex-direction:column;align-items:center;gap:1.4rem;width:100%;padding:0 2rem;text-align:center;`}>
-    <p style={`color:${textColor};opacity:.4;font-size:clamp(.6rem,1vw,.8125rem);letter-spacing:.18em;text-transform:uppercase;font-family:Inter,sans-serif;margin:0;line-height:1.9;transform:translate(${subOffsetX}px,${subOffsetY}px);`}>{subheadline}</p>
+    <p style={`color:${subColor};opacity:1;font-size:clamp(.6rem,1vw,.8125rem);letter-spacing:.18em;text-transform:uppercase;font-family:Inter,sans-serif;margin:0;line-height:1.9;transform:translate(${subOffsetX}px,${subOffsetY}px);`}>{subheadline}</p>
     <div style={`width:1px;height:30px;background:linear-gradient(to bottom,${accentColor},transparent);opacity:.6;`}></div>
     <div style="display:flex;align-items:center;gap:.875rem;flex-wrap:wrap;justify-content:center;">
       <a href="#packages" style={`padding:.75rem 1.875rem;background:${accentColor};color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;text-decoration:none;display:inline-block;transition:opacity .2s;`} onmouseover="this.style.opacity='.82'" onmouseout="this.style.opacity='1'">{ctaPrimary}</a>
-      <a href="#contact" style={`padding:.75rem 1.875rem;border:1.5px solid rgba(255,255,255,.15);color:${textColor};opacity:.7;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;text-decoration:none;display:inline-block;transition:all .2s;`} onmouseover="this.style.borderColor='rgba(255,255,255,.5)';this.style.opacity='1'" onmouseout="this.style.borderColor='rgba(255,255,255,.15)';this.style.opacity='.7'">{ctaSecond}</a>
+      <a href={waHref} target="_blank" rel="noopener" style={`padding:.75rem 1.875rem;background:${ctaSecondBg};color:${ctaSecondText};border:1.5px solid ${ctaSecondBg};font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;text-decoration:none;display:inline-block;transition:opacity .2s;`} onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">{ctaSecond}</a>
     </div>
   </div>
 
@@ -320,6 +342,19 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
   .hero-circle:focus #heroArrow {
     opacity: 1 !important;
     transform: translate(-50%, -50%) scale(1) !important;
+  }
+
+  /* ── Hover: video border forced to pure white, synced with marquee ──
+     ROOT FIX for "orange circle on hover": the static video border
+     (circle_border_color, set independently in admin) never had any
+     hover behaviour before — so no matter what the marquee colour was
+     set to, that solid border stayed exactly as visible, looking like
+     "still an orange circle." Now hovering forces it to white too, so
+     border + spinning marquee read as ONE unified white ring.         */
+  .hero-headline:hover .hero-video-frame,
+  .hero-circle:hover .hero-video-frame,
+  .hero-circle:focus .hero-video-frame {
+    border-color: #fff !important;
   }
 
   @media (max-width: 640px) {
