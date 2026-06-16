@@ -44,8 +44,14 @@ const vid = parseVideo(rawVideo);
 const ytCircle = vid.type === 'youtube'
   ? `https://www.youtube.com/embed/${vid.id}?autoplay=1&mute=1&loop=1&playlist=${vid.id}&controls=0&modestbranding=1&showinfo=0&rel=0&playsinline=1&disablekb=1`
   : '';
+// NOTE: mute=1 added below — browsers (and YouTube's own player) block
+// unmuted autoplay unless it's the direct synchronous result of a click.
+// The auto-expand zoom-then-open path runs from a setTimeout with zero
+// user gesture, so without mute=1 the video loads but silently refuses
+// to play, leaving it paused until manually clicked. Native controls
+// (controls=1 below) still let the visitor unmute afterward.
 const ytFull = vid.type === 'youtube'
-  ? `https://www.youtube.com/embed/${vid.id}?autoplay=1&loop=1&playlist=${vid.id}&controls=1&rel=0&playsinline=1`
+  ? `https://www.youtube.com/embed/${vid.id}?autoplay=1&mute=1&loop=1&playlist=${vid.id}&controls=1&rel=0&playsinline=1`
   : '';
 const igEmbed = vid.type === 'instagram'
   ? `https://www.instagram.com/reel/${vid.id}/embed`
@@ -66,7 +72,11 @@ const word2OffsetY = c.word2_offset_y   ?? '0';
 // ── CIRCLE ──
 const circleSize   = c.circle_size      ?? 'clamp(150px,17vw,260px)';
 const circleBorder = c.circle_border_color ?? '#FFFFFF';
-const circleBorderW= c.circle_border_width ?? '2';
+// circle_border_enabled: NEW toggle. Default 'true' = unchanged behaviour for existing sites.
+// Set to 'false' in admin to permanently remove the static border (at rest AND on hover),
+// so the spinning marquee ring is the ONLY ring around the video — no orange competing with it.
+const circleBorderOn = (c.circle_border_enabled ?? 'true') !== 'false';
+const circleBorderW= circleBorderOn ? (c.circle_border_width ?? '2') : '0';
 const circleOffsetX= c.circle_offset_x  ?? '0';
 const circleOffsetY= c.circle_offset_y  ?? '0';
 // ── MARQUEE ──
@@ -142,9 +152,15 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
   </div>
   <div style={`position:absolute;top:5.5rem;right:2rem;z-index:5;color:${textColor};opacity:.2;font-size:.58rem;letter-spacing:.18em;font-family:Inter,sans-serif;`} data-hero-version="v2-0542">©2024 · v2-0542</div>
 
-  <!-- CENTRED HEADLINE -->
+  <!-- CENTRED HEADLINE
+       FIX: min-height added below. Without it, this flex container's height
+       shrinks to fit ONLY the text (since #heroCircle is position:absolute
+       and excluded from height calc) — meaning its hoverable box was shorter
+       than the visually-overlapping circle/ring, causing inconsistent hover
+       behaviour depending on exact cursor position. min-height:circleSize
+       guarantees the hit-area matches what's actually visible. -->
   <div id="heroHeadline" class="hero-headline"
-    style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10;display:flex;align-items:center;justify-content:center;width:100%;"
+    style={`position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10;display:flex;align-items:center;justify-content:center;width:100%;min-height:${circleSize};`}
     aria-label={`${word1} ${word2}`}>
 
     <div class="hero-words" style={`display:flex;align-items:center;justify-content:center;gap:${wordsGap};`}>
@@ -319,10 +335,13 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
 
 <style>
   /* ── Hover: ring brightens AND scales when hovering the headline text ──
-     ROOT FIX: previously only set opacity, not transform.
+     ROOT FIX #1: previously only set opacity, not transform.
      Without scale() the ring stayed tight around the video (looked like a plain circle).
-     Now headline hover shows the SAME scaled marquee effect as circle hover.       */
-  .hero-headline:hover .hero-ring {
+     ROOT FIX #2: .is-active is toggled by JS on #heroHeadline mouseenter/mouseleave
+     (see script below) — a deterministic backup that doesn't depend on the exact
+     box geometry of nested :hover across absolutely-positioned elements.        */
+  .hero-headline:hover .hero-ring,
+  #heroCircle.is-active .hero-ring {
     opacity: 1 !important;
     transform: scale(var(--hscale, 1.5)) !important;
   }
@@ -339,7 +358,8 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
      encircled by the now-scaled marquee ring above.                    */
   .hero-headline:hover #heroArrow,
   .hero-circle:hover #heroArrow,
-  .hero-circle:focus #heroArrow {
+  .hero-circle:focus #heroArrow,
+  #heroCircle.is-active #heroArrow {
     opacity: 1 !important;
     transform: translate(-50%, -50%) scale(1) !important;
   }
@@ -350,10 +370,12 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
      hover behaviour before — so no matter what the marquee colour was
      set to, that solid border stayed exactly as visible, looking like
      "still an orange circle." Now hovering forces it to white too, so
-     border + spinning marquee read as ONE unified white ring.         */
+     border + spinning marquee read as ONE unified white ring.
+     #heroCircle.is-active is the JS-driven deterministic backup.       */
   .hero-headline:hover .hero-video-frame,
   .hero-circle:hover .hero-video-frame,
-  .hero-circle:focus .hero-video-frame {
+  .hero-circle:focus .hero-video-frame,
+  #heroCircle.is-active .hero-video-frame {
     border-color: #fff !important;
   }
 
@@ -383,19 +405,26 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
   ytFull,
   igEmbed,
   circleOffX: circleOffsetX,
-  circleOffY: circleOffsetY
+  circleOffY: circleOffsetY,
+  ringRestOpacity: orbOpacity,
+  hoverScale: marqueeHoverScale,
+  borderRestColor: circleBorder
 }}>
 (function () {
   const circle     = document.getElementById('heroCircle');
+  const headline   = document.getElementById('heroHeadline');
   const fullscreen = document.getElementById('heroFullscreen');
   const inner      = document.getElementById('heroFullInner');
   const closeBtn   = document.getElementById('heroCloseBtn');
   if (!circle || !fullscreen || !inner || !closeBtn) return;
 
-  /* ── Build fullscreen video HTML ── */
+  /* ── Build fullscreen video HTML ──
+     muted added on the file-video path below: same browser autoplay-policy
+     reason as the YouTube mute=1 fix above. Native controls let the
+     visitor unmute manually once it's playing.                          */
   function buildFull() {
     if (vidType === 'file') {
-      return `<video src="${fileUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" autoplay loop playsinline controls></video>`;
+      return `<video src="${fileUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" autoplay muted loop playsinline controls></video>`;
     }
     if (vidType === 'youtube') {
       return `<iframe src="${ytFull}" style="width:100%;height:100%;border:0;" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
@@ -414,6 +443,17 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
     fullscreen.style.opacity    = '1';
     fullscreen.style.pointerEvents = 'auto';
     document.body.style.overflow = 'hidden';
+
+    // BELT-AND-SUSPENDERS: explicitly call .play() on the inserted video.
+    // The `autoplay` attribute on a <video> created via innerHTML doesn't
+    // always reliably fire in every browser the way it does for markup
+    // present in the initial page load — calling .play() directly removes
+    // that ambiguity. Wrapped in .catch() since some browsers return a
+    // rejected promise harmlessly if playback was already starting.
+    if (vidType === 'file') {
+      const vEl = inner.querySelector('video');
+      if (vEl) vEl.play().catch(() => {});
+    }
   }
 
   /* ── Close fullscreen (clip-path collapses back to 0%) ── */
@@ -477,6 +517,41 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
   });
   closeBtn.addEventListener('click', close);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+
+  /* ── Hover state: DIRECT JS style control, not dependent on CSS at all ──
+     Earlier attempts relied on nested CSS :hover / .is-active class
+     selectors. Those should work, but since the reported symptom
+     (static border staying orange on hover) persisted, this removes
+     ALL dependency on CSS cascade/specificity/Astro-scoping behaviour
+     entirely: JS grabs the three actual elements and sets their inline
+     styles directly on activate, then restores the exact admin-configured
+     resting values on deactivate (not just clearing the style, which
+     would have reset the ring to default opacity 1 instead of whatever
+     was configured in admin). The CSS rules from before are left in
+     place as a harmless redundant fallback — they just won't be doing
+     the real work anymore.                                              */
+  const ring       = circle.querySelector('.hero-ring');
+  const videoFrame = circle.querySelector('.hero-video-frame');
+  const arrow      = document.getElementById('heroArrow');
+
+  if (headline) {
+    const activate = () => {
+      circle.classList.add('is-active');
+      if (ring)       { ring.style.opacity = '1'; ring.style.transform = `scale(${hoverScale})`; }
+      if (videoFrame) { videoFrame.style.borderColor = '#ffffff'; }
+      if (arrow)      { arrow.style.opacity = '1'; arrow.style.transform = 'translate(-50%,-50%) scale(1)'; }
+    };
+    const deactivate = () => {
+      circle.classList.remove('is-active');
+      if (ring)       { ring.style.opacity = String(ringRestOpacity); ring.style.transform = ''; }
+      if (videoFrame) { videoFrame.style.borderColor = borderRestColor; }
+      if (arrow)      { arrow.style.opacity = '0'; arrow.style.transform = 'translate(-50%,-50%) scale(.6)'; }
+    };
+    headline.addEventListener('mouseenter', activate);
+    headline.addEventListener('mouseleave', deactivate);
+    headline.addEventListener('focusin', activate);
+    headline.addEventListener('focusout', deactivate);
+  }
 
   /* ── Auto-expand timer ── */
   if (autoSec > 0) {
