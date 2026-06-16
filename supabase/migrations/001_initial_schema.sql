@@ -109,7 +109,7 @@ create table if not exists blog_posts (
   excerpt text,
   body text,
   cover_image_url text,
-  author text default 'Mashurban',
+  author text default 'MashoorBano',
   tags text[],
   seo_title text,
   seo_description text,
@@ -177,7 +177,7 @@ on conflict do nothing;
 insert into testimonials (client_name, brand_name, quote, rating, is_active, sort_order) values
 (
   'Aryan Kapoor', 'UrbanFit Apparel · Mumbai',
-  'Mashurban rebuilt our website and ran our Meta ads for 45 days. We tripled our online leads.',
+  'MashoorBano rebuilt our website and ran our Meta ads for 45 days. We tripled our online leads.',
   5, true, 1
 ),
 (

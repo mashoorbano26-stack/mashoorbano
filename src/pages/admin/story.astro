@@ -12,10 +12,10 @@ if (Astro.request.method === 'POST') {
   const f = await Astro.request.formData();
   const content = {
     section_label:  f.get('section_label')?.toString() ?? '03 — Our story',
-    headline:       f.get('headline')?.toString() ?? 'Why Mashurban exists',
+    headline:       f.get('headline')?.toString() ?? 'Why MashoorBano exists',
     body:           f.get('body')?.toString() ?? '',
     pull_quote:     f.get('pull_quote')?.toString() ?? '',
-    author:         f.get('author')?.toString() ?? 'Founder, Mashurban',
+    author:         f.get('author')?.toString() ?? 'Founder, MashoorBano',
     author_role:    f.get('author_role')?.toString() ?? 'Builder · Designer · Strategist',
     photo_url:      f.get('photo_url')?.toString() ?? '',
     video_url:      f.get('video_url')?.toString() ?? '',
@@ -40,7 +40,7 @@ const c = (data?.content as Record<string,string>) ?? {};
 ---
 <!DOCTYPE html><html lang="en"><head>
   <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Story Editor — Mashurban Admin</title><meta name="robots" content="noindex,nofollow"/>
+  <title>Story Editor — MashoorBano Admin</title><meta name="robots" content="noindex,nofollow"/>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -97,7 +97,7 @@ const c = (data?.content as Record<string,string>) ?? {};
       <div class="card-title">Section Label & Heading</div>
       <div class="grid2">
         <div class="field"><label>Section Label</label><input type="text" name="section_label" value={c.section_label ?? '03 — Our story'}/></div>
-        <div class="field"><label>Section Heading</label><input type="text" name="headline" value={c.headline ?? 'Why Mashurban exists'}/></div>
+        <div class="field"><label>Section Heading</label><input type="text" name="headline" value={c.headline ?? 'Why MashoorBano exists'}/></div>
       </div>
     </div>
     <div class="card">
@@ -108,13 +108,13 @@ const c = (data?.content as Record<string,string>) ?? {};
       </div>
       <div class="field">
         <label>Body Text (separate paragraphs with blank line)</label>
-        <textarea name="body" rows="8">{c.body ?? 'We got tired of agencies that charged a fortune and delivered generic.\n\nSo we built Mashurban — a studio that does everything a growing brand needs, without the fluff.\n\nWe\'re builders, not account managers. We obsess over your numbers the same way we obsess over ours.'}</textarea>
+        <textarea name="body" rows="8">{c.body ?? 'We got tired of agencies that charged a fortune and delivered generic.\n\nSo we built MashoorBano — a studio that does everything a growing brand needs, without the fluff.\n\nWe\'re builders, not account managers. We obsess over your numbers the same way we obsess over ours.'}</textarea>
       </div>
     </div>
     <div class="card">
       <div class="card-title">Author</div>
       <div class="grid2">
-        <div class="field"><label>Author Name</label><input type="text" name="author" value={c.author ?? 'Founder, Mashurban'}/></div>
+        <div class="field"><label>Author Name</label><input type="text" name="author" value={c.author ?? 'Founder, MashoorBano'}/></div>
         <div class="field"><label>Author Role / Subtitle</label><input type="text" name="author_role" value={c.author_role ?? 'Builder · Designer · Strategist'}/></div>
       </div>
       <div class="grid2">

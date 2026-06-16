@@ -1,4 +1,4 @@
-# MASHURBAN — Setup Instructions
+# MashoorBano — Setup Instructions
 
 ## Step 1: Run this in VS Code terminal (CMD) inside your mashoorbano folder
 
@@ -19,7 +19,7 @@ npm run dev
 ## Step 4: Push to GitHub Desktop
 - Open GitHub Desktop
 - You will see all changed files
-- Write commit message: "Initial Mashurban website"
+- Write commit message: "Initial MashoorBano website"
 - Click Commit to main
 - Click Push origin
 

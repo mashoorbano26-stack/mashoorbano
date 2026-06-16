@@ -138,7 +138,7 @@ try {
     .single();
   if (settingsRow?.content?.whatsapp) waNumber = settingsRow.content.whatsapp;
 } catch {}
-const waHref = `https://wa.me/${waNumber}?text=${encodeURIComponent("Hi! I'd like to book a free call with Mashurban.")}`;
+const waHref = `https://wa.me/${waNumber}?text=${encodeURIComponent("Hi! I'd like to book a free call with MashoorBano.")}`;
 
 // Marquee text: normalise separators → repeat 8× to fully fill the circle path
 const orbNormalised = orbitalRaw.split(/[·.]/).map(x => x.trim()).filter(Boolean).join(' · ');

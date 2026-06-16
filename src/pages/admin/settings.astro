@@ -12,7 +12,7 @@ let saved = false; let error = '';
 if (Astro.request.method === 'POST') {
   const f = await Astro.request.formData();
   const content = {
-    company_name:   f.get('company_name')?.toString() ?? 'Mashurban',
+    company_name:   f.get('company_name')?.toString() ?? 'MashoorBano',
     tagline:        f.get('tagline')?.toString() ?? '',
     address:        f.get('address')?.toString() ?? '',
     phone:          f.get('phone')?.toString() ?? '',
@@ -38,7 +38,7 @@ const c = (data?.content as Record<string,string>) ?? {};
 ---
 <!DOCTYPE html><html lang="en"><head>
   <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Settings — Mashurban Admin</title><meta name="robots" content="noindex,nofollow"/>
+  <title>Settings — MashoorBano Admin</title><meta name="robots" content="noindex,nofollow"/>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -93,9 +93,9 @@ const c = (data?.content as Record<string,string>) ?? {};
     <div class="card">
       <div class="card-title">Business Information</div>
       <div class="grid2">
-        <div class="field"><label>Company Name</label><input type="text" name="company_name" value={c.company_name ?? 'Mashurban'}/><span class="hint">Appears in navbar, footer, emails</span></div>
+        <div class="field"><label>Company Name</label><input type="text" name="company_name" value={c.company_name ?? 'MashoorBano'}/><span class="hint">Appears in navbar, footer, emails</span></div>
         <div class="field"><label>Tagline</label><input type="text" name="tagline" value={c.tagline ?? 'Brands that actually hit.'}/></div>
-        <div class="field"><label>Email</label><input type="email" name="email" value={c.email ?? 'hello@mashurban.com'}/></div>
+        <div class="field"><label>Email</label><input type="email" name="email" value={c.email ?? 'hello@MashoorBano.com'}/></div>
         <div class="field"><label>Phone</label><input type="text" name="phone" value={c.phone ?? '+91 78147 18340'}/></div>
         <div class="field"><label>WhatsApp Number (with country code, no +)</label><input type="text" name="whatsapp" value={c.whatsapp ?? '917814718340'} placeholder="917814718340"/></div>
         <div class="field"><label>GST Number</label><input type="text" name="gst_number" value={c.gst_number ?? ''} placeholder="27AAAAA0000A1Z5"/></div>
@@ -105,11 +105,11 @@ const c = (data?.content as Record<string,string>) ?? {};
     <div class="card">
       <div class="card-title">Social Media Links</div>
       <div class="grid2">
-        <div class="field"><label>Instagram URL</label><input type="url" name="instagram_url" value={c.instagram_url ?? 'https://instagram.com/mashurban'}/></div>
-        <div class="field"><label>LinkedIn URL</label><input type="url" name="linkedin_url" value={c.linkedin_url ?? 'https://linkedin.com/company/mashurban'}/></div>
-        <div class="field"><label>YouTube URL</label><input type="url" name="youtube_url" value={c.youtube_url ?? ''} placeholder="https://youtube.com/@mashurban"/></div>
-        <div class="field"><label>Twitter/X URL</label><input type="url" name="twitter_url" value={c.twitter_url ?? ''} placeholder="https://twitter.com/mashurban"/></div>
-        <div class="field"><label>Calendly URL</label><input type="url" name="calendly_url" value={c.calendly_url ?? 'https://calendly.com/mashurban/strategy'}/></div>
+        <div class="field"><label>Instagram URL</label><input type="url" name="instagram_url" value={c.instagram_url ?? 'https://instagram.com/MashoorBano'}/></div>
+        <div class="field"><label>LinkedIn URL</label><input type="url" name="linkedin_url" value={c.linkedin_url ?? 'https://linkedin.com/company/MashoorBano'}/></div>
+        <div class="field"><label>YouTube URL</label><input type="url" name="youtube_url" value={c.youtube_url ?? ''} placeholder="https://youtube.com/@MashoorBano"/></div>
+        <div class="field"><label>Twitter/X URL</label><input type="url" name="twitter_url" value={c.twitter_url ?? ''} placeholder="https://twitter.com/MashoorBano"/></div>
+        <div class="field"><label>Calendly URL</label><input type="url" name="calendly_url" value={c.calendly_url ?? 'https://calendly.com/MashoorBano/strategy'}/></div>
         <div class="field"><label>Google Analytics ID</label><input type="text" name="google_analytics_id" value={c.google_analytics_id ?? ''} placeholder="G-XXXXXXXXXX"/></div>
       </div>
     </div>

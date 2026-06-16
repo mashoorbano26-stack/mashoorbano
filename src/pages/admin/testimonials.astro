@@ -19,7 +19,7 @@ if (Astro.request.method === 'POST') {
     const content = {
       section_bg: get('section_bg','#0A0A0A'), card_bg: get('card_bg','#141414'),
       card_text: get('card_text','#F5F5F0'), heading: get('heading','Real World, Real Results'),
-      subheading: get('subheading','Founders, CEOs and creators who grew with Mashurban.'),
+      subheading: get('subheading','Founders, CEOs and creators who grew with MashoorBano.'),
       label: get('label','05 — What Clients Say'), heading_color: get('heading_color','#F5F5F0'),
       subheading_color: get('subheading_color','#666666'), carousel_speed: get('carousel_speed','35'),
     };
@@ -55,7 +55,7 @@ const v = (k: string, d: string) => cfg[k] ?? d;
 ---
 <!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Testimonials — Mashurban Admin</title>
+<title>Testimonials — MashoorBano Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -118,7 +118,7 @@ textarea{min-height:80px;resize:vertical}
       <div class="card-title">Section Style & Copy</div>
       <div class="grid3">
         <div class="field"><label>Heading</label><input type="text" name="heading" value={v('heading','Real World, Real Results')}/></div>
-        <div class="field"><label>Subheading</label><input type="text" name="subheading" value={v('subheading','Founders, CEOs and creators who grew with Mashurban.')}/></div>
+        <div class="field"><label>Subheading</label><input type="text" name="subheading" value={v('subheading','Founders, CEOs and creators who grew with MashoorBano.')}/></div>
         <div class="field"><label>Label</label><input type="text" name="label" value={v('label','05 — What Clients Say')}/></div>
       </div>
       <div class="grid3">
