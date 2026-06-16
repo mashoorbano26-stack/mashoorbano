@@ -41,7 +41,7 @@ export default function AdminLayout({ children, active = '' }: Props) {
         height: '100vh', overflowY: 'auto', flexShrink: 0,
       }}>
         <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '1rem', padding: '1.25rem 1rem', borderBottom: '1px solid #E5E0D8' }}>
-          Mash<span style={{ color: '#FF3B00' }}>urban</span>
+          Mash<span style={{ color: '#FF3B00' }}>Bano</span>
         </div>
         <nav style={{ flex: 1 }}>
           {navLinks.map(l => (

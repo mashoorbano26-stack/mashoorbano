@@ -3,4 +3,4 @@ Allow: /
 Disallow: /admin/
 Disallow: /api/
 
-Sitemap: https://mashoorbano.pages.dev/sitemap-index.xml
+Sitemap: https://Mashooroorbano.pages.dev/sitemap-index.xml

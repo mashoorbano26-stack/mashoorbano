@@ -30,7 +30,7 @@ if (Astro.request.method === 'POST') {
     logo_type:         get('logo_type', 'text'),
     logo_image_size:   get('logo_image_size', '40'),
     logo_text1:        get('logo_text1', 'Mash'),
-    logo_text2:        get('logo_text2', 'urban'),
+    logo_text2:        get('logo_text2', 'Bano'),
     logo_image_url:    get('logo_image_url'),
     logo_size:         get('logo_size', '20'),
     navbar_height:     get('navbar_height', '20'),
@@ -120,7 +120,7 @@ const menuItems = (c.menu_items as Array<{label:string;href:string;sort_order:nu
 </head>
 <body>
 <aside>
-  <div class="logo">Mash<span>urban</span></div>
+  <div class="logo">Mash<span>Bano</span></div>
   <nav>
     <a href="/admin">Dashboard</a>
     <a href="/admin/header" class="active">Header</a>
@@ -160,7 +160,7 @@ const menuItems = (c.menu_items as Array<{label:string;href:string;sort_order:nu
       <p class="hint" style="margin-bottom:.75rem;margin-top:-.25rem">Choose how your logo appears in the navbar — image alone, text alone, or image <em>plus</em> text side by side.</p>
       <div class="grid2">
         <div class="field"><label>Logo Text — Part 1</label><input type="text" name="logo_text1" value={v('logo_text1','Mash')} placeholder="Mash"/></div>
-        <div class="field"><label>Logo Text — Part 2 (coloured)</label><input type="text" name="logo_text2" value={v('logo_text2','urban')} placeholder="urban"/></div>
+        <div class="field"><label>Logo Text — Part 2 (coloured)</label><input type="text" name="logo_text2" value={v('logo_text2','Bano')} placeholder="Bano"/></div>
       </div>
       <div class="grid3">
         <div class="field"><label>Part 1 Colour</label><input type="color" name="logo_color1" value={v('logo_color1','#1A1A1A')}/></div>
