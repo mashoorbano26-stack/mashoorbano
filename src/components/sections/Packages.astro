@@ -25,11 +25,32 @@ let packages: Package[] = [];
 let cfg: PkgConfig = {};
 
 try {
-  const { data } = await supabaseAdmin.from('packages')
+  // First attempt: full select including optional per-card colour columns.
+  let { data, error } = await supabaseAdmin.from('packages')
     .select('id,name,tagline,price_inr,price_usd,features,is_popular,card_bg,card_text,card_hover_bg,card_hover_text')
     .eq('is_active', true).order('sort_order', { ascending: true });
+
+  // ROOT-CAUSE FIX: if card_bg/card_text/card_hover_bg/card_hover_text don't
+  // actually exist as columns in the packages table, PostgREST returns an
+  // error for the ENTIRE query (not just those fields) — supabase-js does
+  // NOT throw on this, it resolves with {data:null, error}. The previous
+  // code only checked `if (data)`, silently swallowing the error and
+  // falling through to the hardcoded fallback array below EVERY time,
+  // regardless of what was saved in admin. Retry with only the columns
+  // the admin form actually writes, so real saved data always wins.
+  if (error) {
+    console.error('[Packages] extended select failed, retrying with base columns:', error.message);
+    const retry = await supabaseAdmin.from('packages')
+      .select('id,name,tagline,price_inr,price_usd,features,is_popular')
+      .eq('is_active', true).order('sort_order', { ascending: true });
+    data = retry.data;
+    if (retry.error) console.error('[Packages] base select also failed:', retry.error.message);
+  }
+
   if (data) packages = data as Package[];
-} catch {}
+} catch (e) {
+  console.error('[Packages] unexpected error fetching packages:', e);
+}
 
 try {
   const { data } = await supabaseAdmin.from('site_content').select('content')
