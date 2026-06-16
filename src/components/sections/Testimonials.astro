@@ -36,11 +36,19 @@ let testimonials: Testimonial[] = [];
 let cfg: TestimonialsCfg = {};
 
 try {
-  const { data } = await supabaseAdmin.from('testimonials')
+  // Same risk shape as Packages.astro: explicit column list against a
+  // dedicated table. Currently safe because admin/testimonials.astro writes
+  // the exact same columns it reads — but logging here means if the schema
+  // ever drifts, you'll see it in the console instead of silently falling
+  // back to sample data with zero diagnostic trail.
+  const { data, error } = await supabaseAdmin.from('testimonials')
     .select('id,client_name,brand_name,designation,city,quote,photo_url,video_url,rating,service_type')
     .eq('is_active', true).order('sort_order', { ascending: true });
+  if (error) console.error('[Testimonials] select failed:', error.message);
   if (data) testimonials = data as Testimonial[];
-} catch {}
+} catch (e) {
+  console.error('[Testimonials] unexpected error:', e);
+}
 
 try {
   const { data } = await supabaseAdmin.from('site_content').select('content')
