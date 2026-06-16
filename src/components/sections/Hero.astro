@@ -75,6 +75,11 @@ const orbColor     = c.orbital_color    ?? '#FFFFFF';
 const orbSize      = c.orbital_size      ?? '11';
 const orbSpeed     = parseFloat(c.orbital_speed ?? '14');
 const marqueeHoverScale = c.marquee_hover_scale ?? '1.5';
+// orbital_radius: radius of the circular text path in SVG viewBox units (viewBox is 260×260, centre 130,130).
+// 80 = inside the video circle | 104 = just outside video border (default) | 130+ = wide outer ring
+const orbRadius    = Math.min(148, Math.max(50, parseInt(c.orbital_radius ?? '104')));
+// Build the SVG circular path dynamically from orbRadius
+const orbPath      = `M130,130 m-${orbRadius},0 a${orbRadius},${orbRadius} 0 1,1 ${orbRadius * 2},0 a${orbRadius},${orbRadius} 0 1,1 -${orbRadius * 2},0`;
 // ── TAGLINE ──
 const tagline      = c.tagline           ?? 'Making your BRAND Famous';
 const taglineColor = c.tagline_color      ?? '#FFFFFF';
@@ -129,23 +134,22 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
       style={`position:absolute;top:50%;left:50%;transform:translate(calc(-50% + ${circleOffsetX}px),calc(-50% + ${circleOffsetY}px));z-index:15;width:${circleSize};height:${circleSize};cursor:pointer;`}
       role="button" tabindex="0" aria-label="Play video fullscreen" title="Click to play video">
 
-      <!-- ═══════════════════════════════════════════════════════════
+        <!-- ═══════════════════════════════════════════════════════════
            MARQUEE RING — seamless infinite spin via animateTransform
            rotating the WHOLE <g> group 360° around the SVG centre.
-           The path at radius 104 sits just outside the video border.
-           Faint by default → fully visible on hover → scales to
-           marquee_hover_scale (admin-controlled).
+           Path radius = orbital_radius (admin-controlled, default 104).
+           Text follows the circle, ring brightens + scales on hover.
            ═══════════════════════════════════════════════════════════ -->
       <svg
         class="hero-ring"
         viewBox="0 0 260 260"
         xmlns="http://www.w3.org/2000/svg"
-        style={`position:absolute;inset:-15%;width:130%;height:130%;overflow:visible;opacity:.35;transition:opacity .4s ease,transform .4s ease;--hscale:${marqueeHoverScale};pointer-events:none;`}
+        style={`position:absolute;inset:-20%;width:140%;height:140%;overflow:visible;opacity:.35;transition:opacity .4s ease,transform .4s ease;--hscale:${marqueeHoverScale};pointer-events:none;transform-origin:center center;`}
         aria-hidden="true"
       >
         <defs>
-          <!-- Circular path the text follows. Centre 130,130 · radius 104 -->
-          <path id={pid} d="M130,130 m-104,0 a104,104 0 1,1 208,0 a104,104 0 1,1 -208,0" fill="none"/>
+          <!-- Circular path radius = orbital_radius admin field (default 104 in 260-unit viewBox) -->
+          <path id={pid} d={orbPath} fill="none"/>
         </defs>
 
         <!-- Spinning text group — animateTransform rotates 360° seamlessly, no jump -->
@@ -203,10 +207,28 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
 
   </div>
 
-  <!-- Subheadline (X/Y placement) + Tagline (X/Y placement) + CTAs -->
-  <div style={`position:absolute;bottom:clamp(2.5rem,10vh,6rem);left:50%;transform:translateX(-50%);z-index:10;display:flex;flex-direction:column;align-items:center;gap:1.4rem;width:100%;padding:0 2rem;text-align:center;`}>
-
-    <!-- Tagline box: position controlled from admin via tagline_offset_x / tagline_offset_y -->
+  <!-- ══════════════════════════════════════════════════════════════
+       TAGLINE — independently positioned absolute element.
+       Sits just below the circle by default (top:50% + circleRadius).
+       tagline_offset_x shifts it left/right from horizontal centre.
+       tagline_offset_y shifts it up/down from the default below-circle position.
+       Both are admin-controlled with full range.
+       ══════════════════════════════════════════════════════════════ -->
+  <div
+    id="heroTagline"
+    style={`
+      position:absolute;
+      top:50%;
+      left:50%;
+      z-index:12;
+      transform: translate(
+        calc(-50% + ${taglineOffsetX}px),
+        calc(clamp(80px,9.5vw,140px) + ${taglineOffsetY}px)
+      );
+      text-align:center;
+      pointer-events:none;
+    `}
+  >
     <span style={`
       display:inline-block;
       background:${taglineBg};
@@ -215,16 +237,16 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
       font-family:'Space Grotesk',sans-serif;
       font-weight:700;
       letter-spacing:.05em;
-      padding:.4rem 1.1rem;
+      padding:.4rem 1.2rem;
       border-radius:8px;
-      margin:0 0 .25rem;
       line-height:1.3;
-      text-align:center;
       text-transform:uppercase;
-      transform:translate(${taglineOffsetX}px,${taglineOffsetY}px);
-      will-change:transform;
+      white-space:nowrap;
     `}>{tagline}</span>
+  </div>
 
+  <!-- Subheadline (X/Y placement) + CTAs — tagline is now separate above -->
+  <div style={`position:absolute;bottom:clamp(2.5rem,10vh,6rem);left:50%;transform:translateX(-50%);z-index:10;display:flex;flex-direction:column;align-items:center;gap:1.4rem;width:100%;padding:0 2rem;text-align:center;`}>
     <p style={`color:${textColor};opacity:.4;font-size:clamp(.6rem,1vw,.8125rem);letter-spacing:.18em;text-transform:uppercase;font-family:Inter,sans-serif;margin:0;line-height:1.9;transform:translate(${subOffsetX}px,${subOffsetY}px);`}>{subheadline}</p>
     <div style={`width:1px;height:30px;background:linear-gradient(to bottom,${accentColor},transparent);opacity:.6;`}></div>
     <div style="display:flex;align-items:center;gap:.875rem;flex-wrap:wrap;justify-content:center;">
@@ -264,19 +286,25 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
 </section>
 
 <style>
-  /* ── Hover: ring brightens when hovering anywhere over the headline ── */
-  .hero-headline:hover .hero-ring { opacity: 1 !important; }
+  /* ── Hover: ring brightens AND scales when hovering the headline text ──
+     ROOT FIX: previously only set opacity, not transform.
+     Without scale() the ring stayed tight around the video (looked like a plain circle).
+     Now headline hover shows the SAME scaled marquee effect as circle hover.       */
+  .hero-headline:hover .hero-ring {
+    opacity: 1 !important;
+    transform: scale(var(--hscale, 1.5)) !important;
+  }
 
-  /* ── Hover: ring scales + arrow appears when hovering the circle ── */
+  /* ── Hover: ring scales + arrow appears when hovering directly on the circle ── */
   .hero-circle:hover .hero-ring,
   .hero-circle:focus .hero-ring {
     opacity: 1 !important;
     transform: scale(var(--hscale, 1.5)) !important;
   }
 
-  /* ── Arrow appears on both: headline hover AND circle hover ──
-     This is the key fix: hovering the text also reveals the arrow in
-     the circle, with the marquee ring encircling it. No filled background.  */
+  /* ── Arrow appears on BOTH headline hover AND direct circle hover ──
+     Shows the white SVG arrow in circle centre, no filled background,
+     encircled by the now-scaled marquee ring above.                    */
   .hero-headline:hover #heroArrow,
   .hero-circle:hover #heroArrow,
   .hero-circle:focus #heroArrow {

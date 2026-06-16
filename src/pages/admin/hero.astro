@@ -1,7 +1,7 @@
 ---
 // src/pages/admin/hero.astro
-// Full granular control: each of the 4 elements (MASHOOR, BANO, Circle, Marquee)
-// has size, X/Y position, and colour controls.
+// AUDIT FIX: added tagline_offset_x and tagline_offset_y fields + sliders
+// All existing controls fully retained.
 export const prerender = false;
 import { makeServerClient, getAdmin } from '@/lib/supabase';
 
@@ -41,7 +41,8 @@ if (Astro.request.method === 'POST') {
     orbital_color:       get('orbital_color', '#FFFFFF'),
     orbital_size:        get('orbital_size', '11'),
     orbital_speed:       get('orbital_speed', '14'),
-    marquee_hover_scale: get('marquee_hover_scale', '1.35'),
+    orbital_radius:      get('orbital_radius', '104'),   // NEW: path radius in SVG units
+    marquee_hover_scale: get('marquee_hover_scale', '1.5'),
     // General
     words_gap:           get('words_gap', 'clamp(5rem,11vw,11rem)'),
     tagline:             get('tagline', 'Making your BRAND Famous'),
@@ -49,6 +50,8 @@ if (Astro.request.method === 'POST') {
     tagline_bg:          get('tagline_bg', '#FF3B00'),
     tagline_box_text:    get('tagline_box_text', '#FFFFFF'),
     tagline_size:        get('tagline_size', 'clamp(.85rem,1.3vw,1.1rem)'),
+    tagline_offset_x:    get('tagline_offset_x', '0'),   // NEW
+    tagline_offset_y:    get('tagline_offset_y', '0'),   // NEW
     subheadline:         get('subheadline'),
     sub_offset_x:        get('sub_offset_x', '0'),
     sub_offset_y:        get('sub_offset_y', '0'),
@@ -118,6 +121,7 @@ const v = (k: string, d: string) => c[k] ?? d;
     .toast.ok{background:#f0fdf4;border:1px solid #86efac;color:#166534}
     .toast.err{background:#fef2f2;border:1px solid #fca5a5;color:#991b1b}
     .pos-note{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:.6rem .85rem;font-size:.72rem;color:#1e40af;margin-bottom:.75rem;line-height:1.5}
+    .divider{border:none;border-top:1px solid #F0EDE8;margin:.5rem 0 1rem}
   </style>
 </head>
 <body>
@@ -144,7 +148,7 @@ const v = (k: string, d: string) => c[k] ?? d;
 
 <main>
   <h1>Hero Section</h1>
-  <p class="sub">Full control over MASHOOR, BANO, the video circle, and the marquee — size, position, and colour for each</p>
+  <p class="sub">Full control over MASHOOR, BANO, the video circle, marquee ring, and tagline placement</p>
 
   {saved && <div class="toast ok">✓ Saved! Refresh the homepage to see changes.</div>}
   {error && <div class="toast err">⚠ {error}</div>}
@@ -238,12 +242,12 @@ const v = (k: string, d: string) => c[k] ?? d;
       <div class="field">
         <label>Marquee Text</label>
         <input type="text" name="orbital_text" value={v('orbital_text','SEE MORE · SEE MORE · SEE MORE ·')}/>
-        <span class="hint">Curves around the circle. Use <code>·</code> separators. Faint by default, brightens on hover.</span>
+        <span class="hint">Curves around the circle. Use <code>·</code> separators. Faint by default, brightens on hover over text OR circle.</span>
       </div>
       <div class="grid3">
         <div class="field"><label>Colour</label><input type="color" name="orbital_color" value={v('orbital_color','#FFFFFF')}/></div>
         <div class="field">
-          <label>Font Size</label>
+          <label>Font Size (px)</label>
           <div class="range-row"><input type="range" name="orbital_size" min="6" max="20" step="0.5" value={v('orbital_size','11')} id="osz"/><span class="range-val" id="oszv">{v('orbital_size','11')}px</span></div>
         </div>
         <div class="field">
@@ -251,10 +255,26 @@ const v = (k: string, d: string) => c[k] ?? d;
           <div class="range-row"><input type="range" name="orbital_speed" min="4" max="40" step="1" value={v('orbital_speed','14')} id="osp"/><span class="range-val" id="ospv">{v('orbital_speed','14')}s</span></div>
         </div>
       </div>
+
+      <!-- Ring Radius: controls the SVG circular path the text follows -->
       <div class="field">
-        <label>Marquee Ring Size on Hover (the elegant ring that appears around the arrow)</label>
+        <label>Ring Radius <span class="badge">new · SVG units</span></label>
+        <div class="range-row">
+          <input type="range" name="orbital_radius" min="50" max="148" step="2"
+            value={v('orbital_radius','104')} id="orr"/>
+          <span class="range-val" id="orrv">{v('orbital_radius','104')}</span>
+        </div>
+        <span class="hint">
+          Sets how far the spinning text sits from the circle centre (in SVG units, viewBox is 260×260).<br/>
+          <b>50–80</b> = ring inside the video · <b>90–110</b> = just outside video border (default 104) · <b>120–148</b> = wide outer halo.<br/>
+          This is the BASE radius — Hover Scale below multiplies it on hover.
+        </span>
+      </div>
+
+      <div class="field">
+        <label>Hover Scale (ring size when you hover over text or circle)</label>
         <div class="range-row"><input type="range" name="marquee_hover_scale" min="1" max="2.5" step="0.05" value={v('marquee_hover_scale','1.5')} id="mhs"/><span class="range-val" id="mhsv">{v('marquee_hover_scale','1.5')}×</span></div>
-        <span class="hint">On hover the orange arrow appears in the centre and the moving marquee ring grows to this size around it. 1× = no growth, 2× = double size.</span>
+        <span class="hint">Hovering anywhere on the hero headline OR the circle scales the ring to this multiple of its base radius and reveals the arrow. 1× = no growth · 1.5× = default · 2.5× = very wide. NO orange fill — this is the spinning text ring only.</span>
       </div>
     </div>
 
@@ -266,7 +286,13 @@ const v = (k: string, d: string) => c[k] ?? d;
         <input type="text" name="words_gap" value={v('words_gap','clamp(5rem,11vw,11rem)')}/>
         <span class="hint">Bigger gap = circle sits in open space. Smaller gap = circle overlaps letters more (Amsterdam look).</span>
       </div>
-      <div class="card-title" style="font-size:.8125rem;margin-bottom:.75rem;margin-top:.25rem">Tagline <span class="badge">appears above subheadline</span></div>
+
+      <hr class="divider"/>
+
+      <!-- ── TAGLINE (Making your BRAND Famous) ── -->
+      <div class="card-title" style="font-size:.8125rem;margin-bottom:.75rem;margin-top:.25rem">
+        Tagline <span class="badge">orange box above subheadline</span>
+      </div>
       <div class="grid3">
         <div class="field" style="grid-column:span 2"><label>Tagline Text</label><input type="text" name="tagline" value={v('tagline','Making your BRAND Famous')}/></div>
         <div class="field"><label>Text Colour</label><input type="color" name="tagline_box_text" value={v('tagline_box_text','#FFFFFF')}/></div>
@@ -280,6 +306,21 @@ const v = (k: string, d: string) => c[k] ?? d;
         <input type="text" name="tagline_size" value={v('tagline_size','clamp(.85rem,1.3vw,1.1rem)')}/>
         <span class="hint">e.g. <code>1.1rem</code> fixed, or <code>clamp(.85rem,1.3vw,1.1rem)</code> responsive</span>
       </div>
+
+      <!-- ── NEW: Tagline position X/Y ── -->
+      <div class="pos-note">📍 Tagline floats freely on the hero. <b>Default (0,0)</b> = just below the video circle. Negative Y moves it UP toward or over the circle. Positive Y moves it DOWN toward the CTAs. X shifts it left/right from centre.</div>
+      <div class="grid2">
+        <div class="field"><label>Tagline Position (X) — left/right from centre</label>
+          <div class="range-row"><input type="range" name="tagline_offset_x" min="-500" max="500" step="1" value={v('tagline_offset_x','0')} id="tgx"/><span class="range-val" id="tgxv">{v('tagline_offset_x','0')}px</span></div>
+        </div>
+        <div class="field"><label>Tagline Position (Y) — up/down from below circle</label>
+          <div class="range-row"><input type="range" name="tagline_offset_y" min="-500" max="500" step="1" value={v('tagline_offset_y','0')} id="tgy"/><span class="range-val" id="tgyv">{v('tagline_offset_y','0')}px</span></div>
+          <span class="hint">0 = just below the video circle · −150 = inside/over the circle · +200 = near the CTA buttons</span>
+        </div>
+      </div>
+
+      <hr class="divider"/>
+
       <div class="field"><label>Subheadline</label><input type="text" name="subheadline" value={v('subheadline','Websites · Merch · Content · Meta Ads · Google Ads')}/></div>
       <div class="pos-note">📍 Move the subheadline line up/down/left/right just like the words. 0 = default centred.</div>
       <div class="grid2">
@@ -290,6 +331,7 @@ const v = (k: string, d: string) => c[k] ?? d;
           <div class="range-row"><input type="range" name="sub_offset_y" min="-300" max="300" step="1" value={v('sub_offset_y','0')} id="sy"/><span class="range-val" id="syv">{v('sub_offset_y','0')}px</span></div>
         </div>
       </div>
+
       <div class="grid2">
         <div class="field"><label>Primary CTA</label><input type="text" name="cta_primary_label" value={v('cta_primary_label','See Packages')}/></div>
         <div class="field"><label>Secondary CTA</label><input type="text" name="cta_secondary_label" value={v('cta_secondary_label','Book a Free Call')}/></div>
@@ -301,6 +343,7 @@ const v = (k: string, d: string) => c[k] ?? d;
         <div class="field">
           <label>Auto-Expand (s)</label>
           <div class="range-row"><input type="range" name="auto_expand_seconds" min="0" max="30" step="1" value={v('auto_expand_seconds','0')} id="aut"/><span class="range-val" id="autv">{v('auto_expand_seconds','0')==='0'?'Off':v('auto_expand_seconds','0')+'s'}</span></div>
+          <span class="hint">After this delay the circle zooms to fill the hero section, then fullscreen video opens. 0 = disabled.</span>
         </div>
       </div>
       <div class="grid3">
@@ -329,8 +372,11 @@ const v = (k: string, d: string) => c[k] ?? d;
   link('cx','cxv');   link('cy','cyv');
   link('cbw','cbwv');
   link('osz','oszv'); link('osp','ospv','s');
-  (function(){const r=document.getElementById('mhs');const o=document.getElementById('mhsv');r&&r.addEventListener('input',()=>{if(o)o.textContent=r.value+'×';});})();
-  link('sx','sxv'); link('sy','syv');
+  // orbital_radius — shows raw number (no unit suffix)
+  (function(){const r=document.getElementById('orr') as HTMLInputElement;const o=document.getElementById('orrv');r&&r.addEventListener('input',()=>{if(o)o.textContent=r.value;});})();
+  (function(){const r=document.getElementById('mhs') as HTMLInputElement;const o=document.getElementById('mhsv');r&&r.addEventListener('input',()=>{if(o)o.textContent=r.value+'×';});})();
+  link('tgx','tgxv'); link('tgy','tgyv');  // NEW tagline position sliders
+  link('sx','sxv');   link('sy','syv');
   link('aut','autv','s');
 </script>
 </body>
