@@ -75,9 +75,13 @@ const orbColor     = c.orbital_color    ?? '#FFFFFF';
 const orbSize      = c.orbital_size      ?? '11';
 const orbSpeed     = parseFloat(c.orbital_speed ?? '14');
 const marqueeHoverScale = c.marquee_hover_scale ?? '1.5';
+// orbital_opacity: resting opacity of the ring (0.1–1.0). Default 1 so the fill colour is exactly
+// what the admin picks — no hidden grey wash. Lower it to create a subtle-then-bright hover effect.
+const orbOpacity   = parseFloat(c.orbital_opacity ?? '1').toFixed(2);
 // orbital_radius: radius of the circular text path in SVG viewBox units (viewBox is 260×260, centre 130,130).
-// 80 = inside the video circle | 104 = just outside video border (default) | 130+ = wide outer ring
-const orbRadius    = Math.min(148, Math.max(50, parseInt(c.orbital_radius ?? '104')));
+// SVG uses inset:0 / width:100% (1 SVG unit = 1 CSS pixel for default 260px circle).
+// Video border outer edge ≈ 95.6 SVG units. 98 = clean 2px gap from border (default).
+const orbRadius    = Math.min(130, Math.max(50, parseInt(c.orbital_radius ?? '98')));
 // Build the SVG circular path dynamically from orbRadius
 const orbPath      = `M130,130 m-${orbRadius},0 a${orbRadius},${orbRadius} 0 1,1 ${orbRadius * 2},0 a${orbRadius},${orbRadius} 0 1,1 -${orbRadius * 2},0`;
 // ── TAGLINE ──
@@ -137,14 +141,20 @@ const pid = 'op' + Math.random().toString(36).slice(2, 7);
         <!-- ═══════════════════════════════════════════════════════════
            MARQUEE RING — seamless infinite spin via animateTransform
            rotating the WHOLE <g> group 360° around the SVG centre.
-           Path radius = orbital_radius (admin-controlled, default 104).
-           Text follows the circle, ring brightens + scales on hover.
+
+           SVG is inset:0/width:100% → 1 SVG unit = 1 CSS pixel.
+           Video inset:14% → video border outer edge ≈ 95.6 SVG units.
+           orbital_radius default 98 = 2px gap from the video border.
+
+           opacity = orbital_opacity (admin, default 1.0).
+           Setting colour to #FFFFFF in admin → actually white (no grey wash).
+           CSS hover forces opacity:1 and scales the ring.
            ═══════════════════════════════════════════════════════════ -->
       <svg
         class="hero-ring"
         viewBox="0 0 260 260"
         xmlns="http://www.w3.org/2000/svg"
-        style={`position:absolute;inset:-20%;width:140%;height:140%;overflow:visible;opacity:.35;transition:opacity .4s ease,transform .4s ease;--hscale:${marqueeHoverScale};pointer-events:none;transform-origin:center center;`}
+        style={`position:absolute;inset:0;width:100%;height:100%;overflow:visible;opacity:${orbOpacity};transition:opacity .4s ease,transform .4s ease;--hscale:${marqueeHoverScale};pointer-events:none;`}
         aria-hidden="true"
       >
         <defs>

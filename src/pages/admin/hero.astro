@@ -41,7 +41,8 @@ if (Astro.request.method === 'POST') {
     orbital_color:       get('orbital_color', '#FFFFFF'),
     orbital_size:        get('orbital_size', '11'),
     orbital_speed:       get('orbital_speed', '14'),
-    orbital_radius:      get('orbital_radius', '104'),   // NEW: path radius in SVG units
+    orbital_radius:      get('orbital_radius', '98'),    // NEW: path radius in SVG units (1:1 with CSS px)
+    orbital_opacity:     get('orbital_opacity', '1'),    // NEW: resting opacity (1 = full colour, no grey wash)
     marquee_hover_scale: get('marquee_hover_scale', '1.5'),
     // General
     words_gap:           get('words_gap', 'clamp(5rem,11vw,11rem)'),
@@ -258,16 +259,30 @@ const v = (k: string, d: string) => c[k] ?? d;
 
       <!-- Ring Radius: controls the SVG circular path the text follows -->
       <div class="field">
-        <label>Ring Radius <span class="badge">new · SVG units</span></label>
+        <label>Ring Radius <span class="badge">SVG units · 1 unit ≈ 1px</span></label>
         <div class="range-row">
-          <input type="range" name="orbital_radius" min="50" max="148" step="2"
-            value={v('orbital_radius','104')} id="orr"/>
-          <span class="range-val" id="orrv">{v('orbital_radius','104')}</span>
+          <input type="range" name="orbital_radius" min="50" max="130" step="1"
+            value={v('orbital_radius','98')} id="orr"/>
+          <span class="range-val" id="orrv">{v('orbital_radius','98')}</span>
         </div>
         <span class="hint">
-          Sets how far the spinning text sits from the circle centre (in SVG units, viewBox is 260×260).<br/>
-          <b>50–80</b> = ring inside the video · <b>90–110</b> = just outside video border (default 104) · <b>120–148</b> = wide outer halo.<br/>
-          This is the BASE radius — Hover Scale below multiplies it on hover.
+          How far the spinning text sits from the centre (SVG units ≈ CSS pixels at default circle size).<br/>
+          <b>50–90</b> = inside/on the video · <b>95–100</b> = just outside the video border (default 98) · <b>110–130</b> = outer halo.
+        </span>
+      </div>
+
+      <!-- Ring Opacity: resting state — what the user sees before hover -->
+      <div class="field">
+        <label>Ring Opacity (resting) <span class="badge">new · fixes grey colour bug</span></label>
+        <div class="range-row">
+          <input type="range" name="orbital_opacity" min="0.05" max="1" step="0.05"
+            value={v('orbital_opacity','1')} id="opo"/>
+          <span class="range-val" id="opov">{v('orbital_opacity','1')}</span>
+        </div>
+        <span class="hint">
+          <b>1.0</b> = ring is always fully visible at the colour you set above (default — white stays white).<br/>
+          Lower this if you want the ring to be subtle at rest and pop to full on hover.<br/>
+          <b>On hover the ring is always forced to opacity 1 by CSS regardless of this value.</b>
         </span>
       </div>
 
@@ -372,8 +387,10 @@ const v = (k: string, d: string) => c[k] ?? d;
   link('cx','cxv');   link('cy','cyv');
   link('cbw','cbwv');
   link('osz','oszv'); link('osp','ospv','s');
-  // orbital_radius — shows raw number (no unit suffix)
+  // orbital_radius — raw number
   (function(){const r=document.getElementById('orr') as HTMLInputElement;const o=document.getElementById('orrv');r&&r.addEventListener('input',()=>{if(o)o.textContent=r.value;});})();
+  // orbital_opacity — 0.05 to 1.0 with 2 decimal places
+  (function(){const r=document.getElementById('opo') as HTMLInputElement;const o=document.getElementById('opov');r&&r.addEventListener('input',()=>{if(o)o.textContent=parseFloat(r.value).toFixed(2);});})();
   (function(){const r=document.getElementById('mhs') as HTMLInputElement;const o=document.getElementById('mhsv');r&&r.addEventListener('input',()=>{if(o)o.textContent=r.value+'×';});})();
   link('tgx','tgxv'); link('tgy','tgyv');  // NEW tagline position sliders
   link('sx','sxv');   link('sy','syv');
