@@ -45,6 +45,24 @@ if (Astro.request.method === 'POST') {
     const { error: e } = await supabaseAdmin.from('testimonials').delete().eq('id', get('id'));
     saved = !e; msg = e?.message ?? 'Deleted.';
   }
+
+  // ── NEW: edit action ──────────────────────────────────────────────────────
+  if (action === 'edit') {
+    const { error: e } = await supabaseAdmin.from('testimonials').update({
+      client_name:  get('client_name'),
+      brand_name:   get('brand_name')   || null,
+      designation:  get('designation')  || null,
+      city:         get('city')         || null,
+      quote:        get('quote'),
+      photo_url:    get('photo_url')    || null,
+      video_url:    get('video_url')    || null,
+      rating:       parseInt(get('rating','5')),
+      service_type: get('service_type') || null,
+      sort_order:   parseInt(get('sort_order','0')),
+    }).eq('id', get('id'));
+    saved = !e; msg = e?.message ?? 'Testimonial updated!';
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 }
 
 const { data: tData } = await supabaseAdmin.from('testimonials').select('*').order('sort_order', { ascending: true });
@@ -84,12 +102,24 @@ textarea{min-height:80px;resize:vertical}
 .btn{padding:.625rem 1.25rem;border-radius:10px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.8125rem;cursor:pointer;border:none;transition:all .2s}
 .btn-save{background:#FF3B00;color:#fff}.btn-save:hover{background:#e03200}
 .btn-del{background:#fff;border:1px solid #E5E0D8;color:#ef4444}.btn-del:hover{background:#fef2f2}
+.btn-edit{background:#fff;border:1px solid #E5E0D8;color:#1A1A1A}.btn-edit:hover{background:#F7F5F2;border-color:#FF3B00;color:#FF3B00}
 .toast{padding:.875rem 1.25rem;border-radius:12px;margin-bottom:1.5rem;font-size:.875rem;font-weight:500}
 .toast.ok{background:#f0fdf4;border:1px solid #86efac;color:#166534}
 .toast.err{background:#fef2f2;border:1px solid #fca5a5;color:#991b1b}
 .t-row{display:grid;grid-template-columns:1fr 1fr auto;gap:.75rem;align-items:center;background:#F7F5F2;border-radius:12px;padding:1rem;margin-bottom:.75rem}
 .t-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.875rem}
 .t-meta{font-size:.75rem;color:#888}
+.t-actions{display:flex;flex-direction:column;gap:.4rem;align-items:flex-end}
+
+/* ── Edit Modal ─────────────────────────────────────────── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:1rem}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:20px;padding:2rem;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 24px 60px rgba(0,0,0,.18)}
+.modal-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:.5rem}
+.modal-title::before{content:'';width:3px;height:1rem;background:#FF3B00;border-radius:2px}
+.modal-close{position:absolute;top:1rem;right:1rem;background:none;border:1px solid #E5E0D8;border-radius:8px;width:2rem;height:2rem;cursor:pointer;font-size:1rem;color:#888;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:#F7F5F2;color:#1A1A1A}
+.modal-footer{display:flex;gap:.75rem;justify-content:flex-end;margin-top:1rem;padding-top:1rem;border-top:1px solid #E5E0D8}
 </style>
 </head><body>
 <aside>
@@ -174,18 +204,93 @@ textarea{min-height:80px;resize:vertical}
           {t.service_type && <span style="background:#fff5f3;color:#FF3B00;padding:.2rem .5rem;border-radius:6px;font-size:.65rem;font-weight:700;">{t.service_type}</span>}
           {t.video_url && <span style="margin-left:.4rem;background:#f0fdf4;color:#166534;padding:.2rem .5rem;border-radius:6px;font-size:.65rem;font-weight:700;">▶ VIDEO</span>}
         </div>
-        <form method="POST" onsubmit="return confirm('Delete this testimonial?')">
-          <input type="hidden" name="_action" value="delete"/>
-          <input type="hidden" name="id" value={t.id}/>
-          <button type="submit" class="btn btn-del">Delete</button>
-        </form>
+        {/* ── action buttons ── */}
+        <div class="t-actions">
+          <button
+            type="button"
+            class="btn btn-edit"
+            onclick={`openEditModal(${JSON.stringify(JSON.stringify(t))})`}
+          >Edit</button>
+          <form method="POST" onsubmit="return confirm('Delete this testimonial?')">
+            <input type="hidden" name="_action" value="delete"/>
+            <input type="hidden" name="id" value={t.id}/>
+            <button type="submit" class="btn btn-del">Delete</button>
+          </form>
+        </div>
       </div>
     ))}
   </div>
 </main>
+
+<!-- ── Edit Modal ──────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="editOverlay">
+  <div class="modal">
+    <button type="button" class="modal-close" onclick="closeEditModal()">✕</button>
+    <div class="modal-title">Edit Testimonial</div>
+    <form method="POST" id="editForm">
+      <input type="hidden" name="_action" value="edit"/>
+      <input type="hidden" name="id" id="edit_id"/>
+      <div class="grid2">
+        <div class="field"><label>Client Name</label><input type="text" name="client_name" id="edit_client_name" required/></div>
+        <div class="field"><label>Brand Name</label><input type="text" name="brand_name" id="edit_brand_name"/></div>
+        <div class="field"><label>Designation</label><input type="text" name="designation" id="edit_designation" placeholder="Founder, CEO…"/></div>
+        <div class="field"><label>City</label><input type="text" name="city" id="edit_city" placeholder="Mumbai, Delhi…"/></div>
+        <div class="field"><label>Service Type</label><input type="text" name="service_type" id="edit_service_type" placeholder="Website + Meta Ads"/></div>
+        <div class="field"><label>Rating (1–5)</label><input type="number" name="rating" id="edit_rating" min="1" max="5"/></div>
+        <div class="field"><label>Sort Order</label><input type="number" name="sort_order" id="edit_sort_order"/></div>
+      </div>
+      <div class="field"><label>Remark / Quote</label><textarea name="quote" id="edit_quote" required placeholder="What the client said…"></textarea></div>
+      <div class="grid2">
+        <div class="field"><label>Photo URL (optional)</label><input type="url" name="photo_url" id="edit_photo_url" placeholder="https://…"/></div>
+        <div class="field"><label>Video URL (optional)</label><input type="url" name="video_url" id="edit_video_url" placeholder="https://… .mp4 URL"/><span class="hint">Direct .mp4 URL. If both set, video takes priority.</span></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-edit" onclick="closeEditModal()">Cancel</button>
+        <button type="submit" class="btn btn-save">Save Changes →</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
+  /* Carousel speed display */
   const r = document.getElementById('cs');
   const o = document.getElementById('csv');
   r?.addEventListener('input', () => { if(o) o.textContent = (r as HTMLInputElement).value + 's'; });
+
+  /* Edit modal */
+  function openEditModal(jsonStr: string) {
+    const t = JSON.parse(jsonStr);
+    (document.getElementById('edit_id') as HTMLInputElement).value          = t.id          ?? '';
+    (document.getElementById('edit_client_name') as HTMLInputElement).value = t.client_name ?? '';
+    (document.getElementById('edit_brand_name') as HTMLInputElement).value  = t.brand_name  ?? '';
+    (document.getElementById('edit_designation') as HTMLInputElement).value = t.designation ?? '';
+    (document.getElementById('edit_city') as HTMLInputElement).value        = t.city        ?? '';
+    (document.getElementById('edit_service_type') as HTMLInputElement).value= t.service_type?? '';
+    (document.getElementById('edit_rating') as HTMLInputElement).value      = t.rating      ?? '5';
+    (document.getElementById('edit_sort_order') as HTMLInputElement).value  = t.sort_order  ?? '0';
+    (document.getElementById('edit_quote') as HTMLTextAreaElement).value    = t.quote       ?? '';
+    (document.getElementById('edit_photo_url') as HTMLInputElement).value   = t.photo_url   ?? '';
+    (document.getElementById('edit_video_url') as HTMLInputElement).value   = t.video_url   ?? '';
+    document.getElementById('editOverlay')!.classList.add('open');
+  }
+
+  function closeEditModal() {
+    document.getElementById('editOverlay')!.classList.remove('open');
+  }
+
+  /* Close on overlay click (outside modal box) */
+  document.getElementById('editOverlay')?.addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+  });
+
+  /* ESC key closes modal */
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeEditModal();
+  });
+
+  // Expose to inline onclick
+  (window as any).openEditModal = openEditModal;
+  (window as any).closeEditModal = closeEditModal;
 </script>
 </body></html>
