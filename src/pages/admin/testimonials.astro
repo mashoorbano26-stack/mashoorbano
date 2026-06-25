@@ -110,7 +110,7 @@ textarea{min-height:80px;resize:vertical}
 .toast.err{background:#fef2f2;border:1px solid #fca5a5;color:#991b1b}
 .t-row{display:grid;grid-template-columns:1fr 1fr auto;gap:.75rem;align-items:center;background:#F7F5F2;border-radius:12px;padding:1rem;margin-bottom:.75rem}
 .t-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.875rem}
-.t-meta{font-size:.75rem;color:#888}
+.t-meta{font-size:.75rem;color:#888;position:relative;}
 .t-actions{display:flex;flex-direction:column;gap:.4rem;align-items:flex-end}
 
 /* ── Edit Modal ─────────────────────────────────────────── */
@@ -202,7 +202,7 @@ textarea{min-height:80px;resize:vertical}
           <div class="t-name">{t.client_name}</div>
           <div class="t-meta">
             {t.brand_url
-              ? <a href={t.brand_url} target="_blank" rel="noopener" style="color:#FF3B00;font-weight:700;text-decoration:none;" title={`Open ${t.brand_name} website`}>{t.brand_name} ↗</a>
+              ? <a href={t.brand_url} target="_blank" rel="noopener" style="color:#FF3B00;font-weight:700;text-decoration:underline;position:relative;z-index:10;pointer-events:all;cursor:pointer;" title={`Open ${t.brand_name} website`}>{t.brand_name} ↗</a>
               : t.brand_name
             }
             {' · '}{t.city} · ⭐{t.rating}
