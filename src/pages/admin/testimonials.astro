@@ -32,6 +32,7 @@ if (Astro.request.method === 'POST') {
   if (action === 'add') {
     const { error: e } = await supabaseAdmin.from('testimonials').insert({
       client_name: get('client_name'), brand_name: get('brand_name') || null,
+      brand_url: get('brand_url') || null,
       designation: get('designation') || null, city: get('city') || null,
       quote: get('quote'), photo_url: get('photo_url') || null,
       video_url: get('video_url') || null,
@@ -51,6 +52,7 @@ if (Astro.request.method === 'POST') {
     const { error: e } = await supabaseAdmin.from('testimonials').update({
       client_name:  get('client_name'),
       brand_name:   get('brand_name')   || null,
+      brand_url:    get('brand_url')    || null,
       designation:  get('designation')  || null,
       city:         get('city')         || null,
       quote:        get('quote'),
@@ -174,6 +176,7 @@ textarea{min-height:80px;resize:vertical}
       <div class="grid2">
         <div class="field"><label>Client Name</label><input type="text" name="client_name" required/></div>
         <div class="field"><label>Brand Name</label><input type="text" name="brand_name"/></div>
+        <div class="field" style="grid-column:span 2"><label>Brand Website URL <span style="color:#FF3B00">↗</span></label><input type="url" name="brand_url" placeholder="https://theirwebsite.com"/><span class="hint">Clicking the brand name on the card will open this URL in a new tab.</span></div>
         <div class="field"><label>Designation</label><input type="text" name="designation" placeholder="Founder, CEO…"/></div>
         <div class="field"><label>City</label><input type="text" name="city" placeholder="Mumbai, Delhi…"/></div>
         <div class="field"><label>Service Type</label><input type="text" name="service_type" placeholder="Website + Meta Ads"/></div>
@@ -197,7 +200,13 @@ textarea{min-height:80px;resize:vertical}
       <div class="t-row">
         <div>
           <div class="t-name">{t.client_name}</div>
-          <div class="t-meta">{t.brand_name} · {t.city} · ⭐{t.rating}</div>
+          <div class="t-meta">
+            {t.brand_url
+              ? <a href={t.brand_url} target="_blank" rel="noopener" style="color:#FF3B00;font-weight:700;text-decoration:none;" title={`Open ${t.brand_name} website`}>{t.brand_name} ↗</a>
+              : t.brand_name
+            }
+            {' · '}{t.city} · ⭐{t.rating}
+          </div>
           <div class="t-meta" style="margin-top:.2rem;font-style:italic;opacity:.8">"{t.quote?.slice(0,60)}…"</div>
         </div>
         <div class="t-meta">
@@ -233,6 +242,7 @@ textarea{min-height:80px;resize:vertical}
       <div class="grid2">
         <div class="field"><label>Client Name</label><input type="text" name="client_name" id="edit_client_name" required/></div>
         <div class="field"><label>Brand Name</label><input type="text" name="brand_name" id="edit_brand_name"/></div>
+        <div class="field" style="grid-column:span 2"><label>Brand Website URL <span style="color:#FF3B00">↗</span></label><input type="url" name="brand_url" id="edit_brand_url" placeholder="https://theirwebsite.com"/><span class="hint">Clicking the brand name on the card will open this URL in a new tab.</span></div>
         <div class="field"><label>Designation</label><input type="text" name="designation" id="edit_designation" placeholder="Founder, CEO…"/></div>
         <div class="field"><label>City</label><input type="text" name="city" id="edit_city" placeholder="Mumbai, Delhi…"/></div>
         <div class="field"><label>Service Type</label><input type="text" name="service_type" id="edit_service_type" placeholder="Website + Meta Ads"/></div>
@@ -264,6 +274,7 @@ textarea{min-height:80px;resize:vertical}
     (document.getElementById('edit_id') as HTMLInputElement).value          = t.id          ?? '';
     (document.getElementById('edit_client_name') as HTMLInputElement).value = t.client_name ?? '';
     (document.getElementById('edit_brand_name') as HTMLInputElement).value  = t.brand_name  ?? '';
+    (document.getElementById('edit_brand_url') as HTMLInputElement).value   = t.brand_url   ?? '';
     (document.getElementById('edit_designation') as HTMLInputElement).value = t.designation ?? '';
     (document.getElementById('edit_city') as HTMLInputElement).value        = t.city        ?? '';
     (document.getElementById('edit_service_type') as HTMLInputElement).value= t.service_type?? '';
