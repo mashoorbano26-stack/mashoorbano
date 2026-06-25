@@ -1,8 +1,8 @@
 ---
 // src/components/sections/Testimonials.astro
-// Video cards: vertical (9:16), text overlaid at bottom, play button centre
-// Carousel with prev/next arrows + infinite RTL auto-scroll
-// All content + colours from admin panel
+// Cards: continuous CSS marquee RTL, pauses on hover
+// Click priority: brand_url → open website | video_url → open modal | else → nothing
+// Bottom ticker: quote marquee (unchanged)
 
 import { getAdmin } from '@/lib/supabase';
 import { loadTheme } from '@/lib/theme';
@@ -13,6 +13,7 @@ interface Testimonial {
   id: string;
   client_name: string;
   brand_name: string | null;
+  brand_url: string | null;
   designation: string | null;
   city: string | null;
   quote: string;
@@ -36,13 +37,8 @@ let testimonials: Testimonial[] = [];
 let cfg: TestimonialsCfg = {};
 
 try {
-  // Same risk shape as Packages.astro: explicit column list against a
-  // dedicated table. Currently safe because admin/testimonials.astro writes
-  // the exact same columns it reads — but logging here means if the schema
-  // ever drifts, you'll see it in the console instead of silently falling
-  // back to sample data with zero diagnostic trail.
   const { data, error } = await supabaseAdmin.from('testimonials')
-    .select('id,client_name,brand_name,designation,city,quote,photo_url,video_url,rating,service_type')
+    .select('id,client_name,brand_name,brand_url,designation,city,quote,photo_url,video_url,rating,service_type')
     .eq('is_active', true).order('sort_order', { ascending: true });
   if (error) console.error('[Testimonials] select failed:', error.message);
   if (data) testimonials = data as Testimonial[];
@@ -56,15 +52,15 @@ try {
   if (data?.content) cfg = data.content as TestimonialsCfg;
 } catch {}
 
-// Fallback sample data — 5 cards with Unsplash portrait photos
+// Fallback sample data — 6 cards with realistic Indian founders
 if (!testimonials.length) {
   testimonials = [
-    { id:'1', client_name:'Aryan Kapoor',  brand_name:'UrbanFit Apparel', designation:'Founder',    city:'Mumbai',    quote:'MashoorBano rebuilt our website and ran our Meta ads for 45 days. We tripled our online leads — best investment we made.',       photo_url:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80', video_url:null, rating:5, service_type:'Website + Meta Ads' },
-    { id:'2', client_name:'Priya Sharma',  brand_name:'Chai Republic',    designation:'Co-Founder', city:'Delhi',     quote:'The merch they designed sold out in 6 days. The brand kit they made is something we will use for the next decade.',          photo_url:'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&q=80', video_url:null, rating:5, service_type:'Merch + Branding' },
-    { id:'3', client_name:'Rohan Verma',   brand_name:'Voltex EV',        designation:'CEO',        city:'Bengaluru', quote:'Our Google Ads ROAS went from 1.2× to 4.8× in 60 days. These guys actually understand performance marketing.',              photo_url:'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80', video_url:null, rating:5, service_type:'Google Ads' },
-    { id:'4', client_name:'Neha Joshi',    brand_name:'Glow Studio',      designation:'Director',   city:'Pune',      quote:'Reels they scripted hit 2M views organically. We went from 800 to 40k followers in under 3 months. Unbelievable work.',     photo_url:'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=80', video_url:null, rating:5, service_type:'Content Creation' },
-    { id:'5', client_name:'Karan Mehta',   brand_name:'SwiftKart',        designation:'Founder',    city:'Ahmedabad', quote:'Complete brand identity in 2 weeks. Investors noticed the difference immediately at our pitch. Worth every rupee.',           photo_url:'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&q=80', video_url:null, rating:5, service_type:'Brand Identity' },
-    { id:'6', client_name:'Simran Kaur',   brand_name:'Bloom Bakehouse',  designation:'Owner',      city:'Chandigarh',quote:'Our website now ranks #1 in Chandigarh for custom cakes. Orders doubled in 90 days. MashoorBano delivered beyond expectations.', photo_url:'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&q=80', video_url:null, rating:5, service_type:'Website + SEO' },
+    { id:'1', client_name:'Aryan Kapoor',  brand_name:'velvetwhisk.in',   brand_url:'https://velvetwhisk.in',   designation:'Founder',    city:'Gurdaspur',  quote:'Build our whole website in 3 days',                                                                           photo_url:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80', video_url:null, rating:5, service_type:null },
+    { id:'2', client_name:'Aashna Bhatia', brand_name:'collection point', brand_url:null,                       designation:'Founder',    city:'GURDASPUR',  quote:'Exceeded our expectations. We\'ll definitely work together again.',                                           photo_url:'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&q=80', video_url:null, rating:5, service_type:'Website + Meta Ads' },
+    { id:'3', client_name:'Keshav Mahajan', brand_name:'Gupta Manufacturing Co', brand_url:null,                designation:'Co-Founder', city:'Gurdaspur',  quote:'This website build Trust. The brand kit is something we will use for the next decade. Worth ever…',          photo_url:'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80', video_url:null, rating:5, service_type:'Website' },
+    { id:'4', client_name:'Rohan Verma',   brand_name:'gcta',             brand_url:null,                       designation:'CEO',        city:'GURDASPUR',  quote:'Our Google Ads ROAS went from 1.2× to 4.8× in 60 days. These guys actually understand…',                  photo_url:'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80', video_url:null, rating:5, service_type:'Google Ads' },
+    { id:'5', client_name:'Neha Joshi',    brand_name:'Glow Studio',      brand_url:null,                       designation:'Director',   city:'GURDASPUR',  quote:'Reels they scripted hit 2M views organically. We went from 800 to 40k followers in under 3 month…',        photo_url:'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=80', video_url:null, rating:5, service_type:'Content Creation' },
+    { id:'6', client_name:'Simran Kaur',   brand_name:'Bloom Bakehouse',  brand_url:null,                       designation:'Owner',      city:'Chandigarh', quote:'Our website now ranks #1 in Chandigarh for custom cakes. Orders doubled in 90 days.',                       photo_url:'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&q=80', video_url:null, rating:5, service_type:'Website + SEO' },
   ];
 }
 
@@ -75,6 +71,9 @@ const label      = cfg.label           ?? '05 — What Clients Say';
 const hColor     = theme.testimonials_heading ?? cfg.heading_color ?? '#F5F5F0';
 const sColor     = cfg.subheading_color ?? '#666666';
 const speed      = parseFloat(cfg.carousel_speed ?? '40');
+
+// Marquee: duplicate cards so scroll is seamless (we need at least 2 full sets)
+const marqueeCards = [...testimonials, ...testimonials];
 
 function stars(n: number) { return '★'.repeat(Math.max(1, Math.min(5, n))); }
 function initials(name: string) { return name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase(); }
@@ -89,180 +88,157 @@ function initials(name: string) { return name.split(' ').map(n => n[0]).join('')
     <p style={`font-size:clamp(.8rem,1.2vw,.9375rem);color:${sColor};font-family:Inter,sans-serif;margin:0;`}>{subheading}</p>
   </div>
 
-  <!-- Carousel wrapper -->
-  <div style="position:relative;">
+  <!-- ── Continuous marquee carousel ──────────────────────────────────── -->
+  <div class="t-marquee-cards-wrap">
+    <!-- Left fade -->
+    <div class="t-fade-left" aria-hidden="true"></div>
+    <!-- Right fade -->
+    <div class="t-fade-right" aria-hidden="true"></div>
 
-    <!-- Prev arrow -->
-    <button
-      id="tPrev"
-      aria-label="Previous testimonial"
-      style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);
-        z-index:20;width:44px;height:44px;border-radius:50%;
-        background:rgba(255,255,255,.10);border:1.5px solid rgba(255,255,255,.15);
-        display:flex;align-items:center;justify-content:center;
-        cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.10);
-        transition:background .2s,border-color .2s;"
-      onmouseover="this.style.background='#FF3B00';this.style.borderColor='#FF3B00';this.querySelector('svg').style.color='#fff'"
-      onmouseout="this.style.background='rgba(255,255,255,.10)';this.style.borderColor='rgba(255,255,255,.15)';this.querySelector('svg').style.color='#fff'"
-    >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color:#fff;">
-        <polyline points="15 18 9 12 15 6"/>
-      </svg>
-    </button>
+    <div class="t-marquee-cards-track" id="tMarqueeCards" style={`--dur:${speed}s;`}>
+      {marqueeCards.map((t) => {
+        const vurl  = t.video_url ?? '';
+        const isYT  = vurl.includes('youtube.com') || vurl.includes('youtu.be');
+        const isIG  = vurl.includes('instagram.com');
+        const isMp4 = !!vurl && !isYT && !isIG;
+        const vtype = isYT ? 'youtube' : isIG ? 'instagram' : isMp4 ? 'mp4' : 'none';
+        const ytIdMatch = vurl.match(/(?:v=|youtu\.be\/|\/embed\/|\/shorts\/)([a-zA-Z0-9_-]{11})/);
+        const ytId  = ytIdMatch ? ytIdMatch[1] : '';
+        const thumbSrc = t.photo_url
+          ? t.photo_url
+          : (isYT && ytId ? `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg` : null);
 
-    <!-- Next arrow -->
-    <button
-      id="tNext"
-      aria-label="Next testimonial"
-      style="position:absolute;right:1rem;top:50%;transform:translateY(-50%);
-        z-index:20;width:44px;height:44px;border-radius:50%;
-        background:rgba(255,255,255,.10);border:1.5px solid rgba(255,255,255,.15);
-        display:flex;align-items:center;justify-content:center;
-        cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.10);
-        transition:background .2s,border-color .2s;"
-      onmouseover="this.style.background='#FF3B00';this.style.borderColor='#FF3B00';this.querySelector('svg').style.color='#fff'"
-      onmouseout="this.style.background='rgba(255,255,255,.10)';this.style.borderColor='rgba(255,255,255,.15)';this.querySelector('svg').style.color='#fff'"
-    >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color:#fff;">
-        <polyline points="9 18 15 12 9 6"/>
-      </svg>
-    </button>
+        // Determine click action: brand_url > video > nothing
+        const hasBrandUrl = !!(t.brand_url);
+        const hasVideo    = vtype !== 'none';
 
-    <!-- Track (overflow hidden, fade edges) -->
-    <div
-      style="overflow:hidden;position:relative;
-        --fade:rgba(10,10,10,0.92);"
-    >
-      <!-- Left fade -->
-      <div style="position:absolute;top:0;left:0;bottom:0;width:80px;z-index:10;pointer-events:none;
-        background:linear-gradient(to right,var(--fade),transparent);" aria-hidden="true"></div>
-      <!-- Right fade -->
-      <div style="position:absolute;top:0;right:0;bottom:0;width:80px;z-index:10;pointer-events:none;
-        background:linear-gradient(to left,var(--fade),transparent);" aria-hidden="true"></div>
+        return (
+        <div
+          class="t-card"
+          data-id={t.id}
+          data-vtype={vtype}
+          data-vurl={vurl}
+          data-ytid={ytId}
+          data-brandurl={t.brand_url ?? ''}
+          style={`flex-shrink:0;width:220px;position:relative;border-radius:18px;overflow:hidden;
+            cursor:${hasBrandUrl || hasVideo ? 'pointer' : 'default'};
+            box-shadow:0 4px 24px rgba(0,0,0,.10);
+            transition:transform .25s,box-shadow .25s;`}
+          onmouseover="this.parentElement.style.animationPlayState='paused';this.style.transform='translateY(-6px)';this.style.boxShadow='0 16px 48px rgba(0,0,0,.18)'"
+          onmouseout="this.parentElement.style.animationPlayState='running';this.style.transform='';this.style.boxShadow='0 4px 24px rgba(0,0,0,.10)'"
+        >
+          <!-- 9:16 vertical aspect -->
+          <div style="aspect-ratio:9/16;position:relative;background:#1a1a1a;overflow:hidden;">
 
-      <!-- Scrollable flex row -->
-      <div
-        id="tTrack"
-        style="display:flex;gap:1.125rem;padding:0 3rem 1.5rem;
-          transition:transform .45s cubic-bezier(.4,0,.2,1);
-          will-change:transform;"
-      >
-        {testimonials.map((t) => {
-          // Detect video type for smart modal dispatch
-          const vurl  = t.video_url ?? '';
-          const isYT  = vurl.includes('youtube.com') || vurl.includes('youtu.be');
-          const isIG  = vurl.includes('instagram.com');
-          const isMp4 = !!vurl && !isYT && !isIG;
-          const vtype = isYT ? 'youtube' : isIG ? 'instagram' : isMp4 ? 'mp4' : 'none';
-          // YouTube thumbnail fallback
-          const ytIdMatch = vurl.match(/(?:v=|youtu\.be\/|\/embed\/|\/shorts\/)([a-zA-Z0-9_-]{11})/);
-          const ytId  = ytIdMatch ? ytIdMatch[1] : '';
-          const thumbSrc = t.photo_url
-            ? t.photo_url
-            : (isYT && ytId ? `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg` : null);
-          return (
-          <div
-            class="t-card"
-            data-id={t.id}
-            data-vtype={vtype}
-            data-vurl={vurl}
-            data-ytid={ytId}
-            style="flex-shrink:0;width:220px;position:relative;border-radius:18px;overflow:hidden;
-              cursor:pointer;box-shadow:0 4px 24px rgba(0,0,0,.10);
-              transition:transform .25s,box-shadow .25s;"
-            onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 16px 48px rgba(0,0,0,.18)'"
-            onmouseout="this.style.transform='';this.style.boxShadow='0 4px 24px rgba(0,0,0,.10)'"
-          >
-            <!-- 9:16 vertical aspect -->
-            <div style="aspect-ratio:9/16;position:relative;background:#1a1a1a;overflow:hidden;">
-
-              <!-- FIX 1: Always show thumbnail (photo_url, or YT auto-thumb, or gradient) -->
-              {thumbSrc ? (
-                <img
-                  src={thumbSrc}
-                  alt={t.client_name}
-                  style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;"
-                  loading="lazy"
-                />
-              ) : (
-                <div style={`position:absolute;inset:0;background:linear-gradient(160deg,#1a1a2e,#FF3B00);
-                  display:flex;align-items:center;justify-content:center;`}>
-                  <span style="font-family:'Space Grotesk',sans-serif;font-weight:900;font-size:3rem;color:rgba(255,255,255,.3);">
-                    {initials(t.client_name)}
-                  </span>
-                </div>
-              )}
-
-              <!-- Dark gradient overlay bottom -->
-              <div style="position:absolute;inset:0;
-                background:linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.3) 45%,rgba(0,0,0,0) 100%);
-                pointer-events:none;" aria-hidden="true"></div>
-
-              <!-- FIX 2: Play button only when video_url exists -->
-              {vtype !== 'none' && (
-              <div
-                class="t-play"
-                style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-                  width:52px;height:52px;border-radius:50%;
-                  background:rgba(255,255,255,.18);backdrop-filter:blur(4px);
-                  border:2px solid rgba(255,255,255,.4);
-                  display:flex;align-items:center;justify-content:center;
-                  transition:background .2s,transform .2s;pointer-events:none;"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
-                  <polygon points="5,3 19,12 5,21"/>
-                </svg>
+            {thumbSrc ? (
+              <img
+                src={thumbSrc}
+                alt={t.client_name}
+                style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;"
+                loading="lazy"
+              />
+            ) : (
+              <div style={`position:absolute;inset:0;background:linear-gradient(160deg,#1a1a2e,#FF3B00);
+                display:flex;align-items:center;justify-content:center;`}>
+                <span style="font-family:'Space Grotesk',sans-serif;font-weight:900;font-size:3rem;color:rgba(255,255,255,.3);">
+                  {initials(t.client_name)}
+                </span>
               </div>
-              )}
+            )}
 
-              <!-- Star rating -->
-              <div style="position:absolute;top:.875rem;left:.875rem;
-                font-size:.65rem;color:#FFB800;letter-spacing:.05em;">
-                {stars(t.rating)}
+            <!-- Dark gradient overlay bottom -->
+            <div style="position:absolute;inset:0;
+              background:linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.3) 45%,rgba(0,0,0,0) 100%);
+              pointer-events:none;" aria-hidden="true"></div>
+
+            <!-- Play button — only when video exists AND no brand_url (brand_url takes priority) -->
+            {hasVideo && !hasBrandUrl && (
+            <div
+              class="t-play"
+              style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+                width:52px;height:52px;border-radius:50%;
+                background:rgba(255,255,255,.18);backdrop-filter:blur(4px);
+                border:2px solid rgba(255,255,255,.4);
+                display:flex;align-items:center;justify-content:center;
+                transition:background .2s,transform .2s;pointer-events:none;"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
+                <polygon points="5,3 19,12 5,21"/>
+              </svg>
+            </div>
+            )}
+
+            <!-- External link icon — when brand_url exists -->
+            {hasBrandUrl && (
+            <div
+              class="t-link-icon"
+              style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+                width:52px;height:52px;border-radius:50%;
+                background:rgba(255,59,0,.18);backdrop-filter:blur(4px);
+                border:2px solid rgba(255,59,0,.5);
+                display:flex;align-items:center;justify-content:center;
+                transition:background .2s,transform .2s;pointer-events:none;
+                opacity:0;"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                <polyline points="15 3 21 3 21 9"/>
+                <line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+            </div>
+            )}
+
+            <!-- Star rating -->
+            <div style="position:absolute;top:.875rem;left:.875rem;
+              font-size:.65rem;color:#FFB800;letter-spacing:.05em;">
+              {stars(t.rating)}
+            </div>
+
+            <!-- Service tag -->
+            {t.service_type && (
+              <div style="position:absolute;top:.75rem;right:.75rem;">
+                <span style="font-size:.55rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+                  background:#FF3B00;color:#fff;padding:.2rem .55rem;border-radius:999px;">
+                  {t.service_type}
+                </span>
               </div>
+            )}
 
-              <!-- Service tag -->
-              {t.service_type && (
-                <div style="position:absolute;top:.75rem;right:.75rem;">
-                  <span style="font-size:.55rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
-                    background:#FF3B00;color:#fff;padding:.2rem .55rem;border-radius:999px;">
-                    {t.service_type}
-                  </span>
-                </div>
-              )}
-
-              <!-- Bottom overlay: quote + name + designation + city -->
-              <div style="position:absolute;bottom:0;left:0;right:0;padding:1.25rem .875rem .875rem;">
-                <p style="font-family:Inter,sans-serif;font-size:.75rem;line-height:1.55;
-                  color:rgba(255,255,255,.88);margin:0 0 .625rem;
-                  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">
-                  "{t.quote}"
-                </p>
-                <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.8125rem;color:#fff;margin-bottom:.15rem;">
-                  {t.client_name}
-                </div>
-                <div style="font-size:.65rem;color:rgba(255,255,255,.55);font-family:Inter,sans-serif;line-height:1.4;">
-                  {t.designation}{t.brand_name ? ` · ${t.brand_name}` : ''}
-                  {t.city ? ` · ${t.city}` : ''}
-                </div>
+            <!-- Bottom overlay: quote + name + designation + brand_url as clickable link -->
+            <div style="position:absolute;bottom:0;left:0;right:0;padding:1.25rem .875rem .875rem;">
+              <p style="font-family:Inter,sans-serif;font-size:.75rem;line-height:1.55;
+                color:rgba(255,255,255,.88);margin:0 0 .625rem;
+                display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">
+                "{t.quote}"
+              </p>
+              <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.8125rem;color:#fff;margin-bottom:.15rem;">
+                {t.client_name}
+              </div>
+              <div style="font-size:.65rem;color:rgba(255,255,255,.55);font-family:Inter,sans-serif;line-height:1.4;">
+                {t.designation}
+                {t.brand_name
+                  ? (t.brand_url
+                      ? <span class="t-brand-link" data-href={t.brand_url}> · {t.brand_name} ↗</span>
+                      : ` · ${t.brand_name}`
+                    )
+                  : ''
+                }
+                {t.city ? ` · ${t.city}` : ''}
               </div>
             </div>
           </div>
+        </div>
         );
-        })}
-      </div>
+      })}
     </div>
   </div>
 
-  <!-- Dot indicators -->
-  <div id="tDots" style="display:flex;justify-content:center;gap:.5rem;margin-top:1.5rem;padding:0 1rem;flex-wrap:wrap;"></div>
-
 </section>
 
-<!-- ── Marquee: OUTSIDE section so overflow:hidden doesn't clip it ── -->
+<!-- ── Bottom quote ticker marquee ─────────────────────────────────────── -->
 <div class="t-marquee-wrap" aria-hidden="true" style={`background:${sectionBg};padding:.5rem 0 2rem;`}>
   <div class="t-marquee-track">
-    {[...testimonials, ...testimonials].map((t, i) => (
+    {[...testimonials, ...testimonials].map((t) => (
       <div class="t-mq-item">
         <span class="t-mq-stars">{'★'.repeat(Math.max(1,Math.min(5,t.rating)))}</span>
         <span class="t-mq-quote">"{t.quote}"</span>
@@ -280,11 +256,9 @@ function initials(name: string) { return name.split(' ').map(n => n[0]).join('')
     animation:modalIn .3s ease;"
   aria-modal="true" role="dialog" aria-label="Testimonial video">
   <div style="position:relative;width:min(360px,92vw);max-height:92vh;">
-    <!-- mp4 player -->
     <video id="tModalVid"
       style="width:100%;border-radius:16px;display:none;max-height:88vh;object-fit:contain;"
       controls playsinline></video>
-    <!-- YouTube embed (9:16) -->
     <div id="tModalYT" style="display:none;width:100%;aspect-ratio:9/16;border-radius:16px;overflow:hidden;">
       <iframe id="tModalYTFrame"
         style="width:100%;height:100%;border:none;"
@@ -302,18 +276,57 @@ function initials(name: string) { return name.split(' ').map(n => n[0]).join('')
 
 <style>
   @keyframes modalIn { from { opacity:0; transform:scale(.96); } to { opacity:1; transform:scale(1); } }
+
+  /* ── Card hover: show link icon, scale up ─────────────────────────── */
+  .t-card:hover .t-link-icon {
+    opacity: 1 !important;
+    background: rgba(255,59,0,.55) !important;
+    border-color: #FF3B00 !important;
+    transform: translate(-50%,-50%) scale(1.1) !important;
+  }
   .t-card:hover .t-play {
     background: rgba(255,59,0,.75) !important;
     border-color: #FF3B00 !important;
     transform: translate(-50%,-50%) scale(1.1) !important;
   }
+  .t-brand-link {
+    color: #FF3B00;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: underline;
+  }
 
-  /* ── Marquee ─────────────────────────────────────────────────────── */
+  /* ── Card marquee (main cards area) ──────────────────────────────── */
+  .t-marquee-cards-wrap {
+    position: relative;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+    mask-image:         linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+  }
+  .t-fade-left, .t-fade-right {
+    display: none; /* handled by mask-image above */
+  }
+  .t-marquee-cards-track {
+    display: flex;
+    gap: 1.125rem;
+    padding: 0.5rem 0 1.5rem;
+    width: max-content;
+    animation: cardMarqueeScroll var(--dur, 40s) linear infinite;
+    will-change: transform;
+  }
+  .t-marquee-cards-wrap:hover .t-marquee-cards-track {
+    animation-play-state: paused;
+  }
+  @keyframes cardMarqueeScroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+
+  /* ── Bottom quote ticker ──────────────────────────────────────────── */
   .t-marquee-wrap {
     margin-top: 2.5rem;
     overflow: hidden;
     position: relative;
-    /* fade edges */
     -webkit-mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
     mask-image:         linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
   }
@@ -340,11 +353,7 @@ function initials(name: string) { return name.split(' ').map(n => n[0]).join('')
     max-width: 420px;
     white-space: nowrap;
   }
-  .t-mq-stars {
-    color: #FFB800;
-    font-size: .65rem;
-    flex-shrink: 0;
-  }
+  .t-mq-stars { color: #FFB800; font-size: .65rem; flex-shrink: 0; }
   .t-mq-quote {
     font-family: Inter, sans-serif;
     font-size: .75rem;
@@ -363,78 +372,17 @@ function initials(name: string) { return name.split(' ').map(n => n[0]).join('')
     flex-shrink: 0;
     white-space: nowrap;
   }
-  .t-mq-dot {
-    color: rgba(255,255,255,.2);
-    font-size: .5rem;
-    flex-shrink: 0;
-  }
+  .t-mq-dot { color: rgba(255,255,255,.2); font-size: .5rem; flex-shrink: 0; }
 </style>
 
-<script define:vars={{ speed }}>
+<script>
 (function () {
-  const track   = document.getElementById('tTrack');
-  const prevBtn = document.getElementById('tPrev');
-  const nextBtn = document.getElementById('tNext');
-  const dotsEl  = document.getElementById('tDots');
   const modal      = document.getElementById('tModal');
-  const modalVid   = document.getElementById('tModalVid');
+  const modalVid   = document.getElementById('tModalVid') as HTMLVideoElement | null;
   const modalYT    = document.getElementById('tModalYT');
-  const ytFrame    = document.getElementById('tModalYTFrame');
+  const ytFrame    = document.getElementById('tModalYTFrame') as HTMLIFrameElement | null;
   const mClose     = document.getElementById('tModalClose');
 
-  if (!track) return;
-
-  const cards     = Array.from(track.querySelectorAll('.t-card'));
-  const total     = cards.length;
-  const CARD_W    = 220 + 18; // card width + gap
-  let current     = 0;
-  let autoTimer   = null;
-
-  // Build dots
-  if (dotsEl) {
-    cards.forEach((_, i) => {
-      const d = document.createElement('button');
-      d.style.cssText = `width:8px;height:8px;border-radius:50%;border:none;cursor:pointer;
-        background:${i===0?'#FF3B00':'rgba(255,255,255,.2)'};padding:0;transition:background .2s,width .2s;`;
-      d.setAttribute('aria-label', `Go to testimonial ${i + 1}`);
-      d.addEventListener('click', () => goTo(i));
-      dotsEl.appendChild(d);
-    });
-  }
-
-  function updateDots(idx) {
-    if (!dotsEl) return;
-    const dots = dotsEl.querySelectorAll('button');
-    dots.forEach((d, i) => {
-      d.style.background = i === idx ? '#FF3B00' : 'rgba(255,255,255,.2)';
-      d.style.width      = i === idx ? '22px' : '8px';
-      d.style.borderRadius = '999px';
-    });
-  }
-
-  function goTo(idx) {
-    current = ((idx % total) + total) % total;
-    // Centre the active card
-    const container = track.parentElement;
-    const viewW     = container ? container.offsetWidth : window.innerWidth;
-    const offset    = current * CARD_W - (viewW / 2 - 220 / 2 - 48);
-    track.style.transform = `translateX(${-Math.max(0, offset)}px)`;
-    updateDots(current);
-  }
-
-  prevBtn?.addEventListener('click', () => { clearAuto(); goTo(current - 1); startAuto(); });
-  nextBtn?.addEventListener('click', () => { clearAuto(); goTo(current + 1); startAuto(); });
-
-  function startAuto() {
-    clearAuto();
-    autoTimer = setInterval(() => goTo(current + 1), speed * 1000 / total);
-  }
-  function clearAuto() { if (autoTimer) clearInterval(autoTimer); }
-
-  track.addEventListener('mouseenter', clearAuto);
-  track.addEventListener('mouseleave', startAuto);
-
-  // Close modal helper
   function closeModal() {
     if (modal)    modal.style.display = 'none';
     if (modalVid) { modalVid.pause(); modalVid.src = ''; modalVid.style.display = 'none'; }
@@ -445,37 +393,54 @@ function initials(name: string) { return name.split(' ').map(n => n[0]).join('')
   modal?.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
-  // Card click — FIX 2: smart video dispatch (mp4 / YouTube / Instagram)
-  cards.forEach((card, i) => {
-    card.addEventListener('click', () => {
-      const vtype = card.dataset.vtype;
-      const vurl  = card.dataset.vurl;
-      const ytid  = card.dataset.ytid;
+  // Card click — priority: brand_url → open website | video → modal | else → nothing
+  document.querySelectorAll('.t-card').forEach((card) => {
+    card.addEventListener('click', (e) => {
+      const el      = card as HTMLElement;
+      const brandUrl = el.dataset.brandurl;
+      const vtype    = el.dataset.vtype;
+      const vurl     = el.dataset.vurl;
+      const ytid     = el.dataset.ytid;
 
+      // Priority 1: brand website
+      if (brandUrl) {
+        window.open(brandUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+
+      // Priority 2: video modal
       if (vtype === 'mp4' && vurl && modal && modalVid) {
         closeModal();
         modalVid.src = vurl;
         modalVid.style.display = 'block';
         modal.style.display = 'flex';
         modalVid.play().catch(() => {});
-
-      } else if (vtype === 'youtube' && ytid && modal && ytFrame && modalYT) {
+        return;
+      }
+      if (vtype === 'youtube' && ytid && modal && ytFrame && modalYT) {
         closeModal();
         ytFrame.src = `https://www.youtube-nocookie.com/embed/${ytid}?autoplay=1&rel=0&playsinline=1`;
         modalYT.style.display = 'block';
         modal.style.display = 'flex';
-
-      } else if (vtype === 'instagram' && vurl) {
+        return;
+      }
+      if (vtype === 'instagram' && vurl) {
         window.open(vurl, '_blank', 'noopener,noreferrer');
         return;
       }
 
-      goTo(i);
+      // No action if neither brand_url nor video
     });
   });
 
-  // Init
-  goTo(0);
-  startAuto();
+  // Brand link clicks inside card bottom text (delegated, stopPropagation so card click doesn't double-fire)
+  document.addEventListener('click', (e) => {
+    const el = (e.target as HTMLElement).closest('.t-brand-link');
+    if (!el) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const href = (el as HTMLElement).dataset.href;
+    if (href) window.open(href, '_blank', 'noopener,noreferrer');
+  });
 })();
 </script>
