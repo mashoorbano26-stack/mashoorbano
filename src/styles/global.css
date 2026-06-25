@@ -49,10 +49,4 @@
 .reveal-delay-2 { transition-delay: 0.2s; }
 .reveal-delay-3 { transition-delay: 0.3s; }
 
-/* Custom cursor */
-#g-dot {
-  position: fixed; width: 10px; height: 10px; background: #FF3B00;
-  border-radius: 50%; pointer-events: none; z-index: 99999;
-  transform: translate(-50%,-50%); transition: width .15s, height .15s;
-  left: -30px; top: -30px; mix-blend-mode: multiply;
-}
+

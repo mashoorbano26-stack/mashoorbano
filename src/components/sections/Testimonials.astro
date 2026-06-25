@@ -197,20 +197,6 @@ function initials(name: string) { return name.split(' ').map(n => n[0]).join('')
     </div>
   </div>
 
-  <!-- ── Bottom quote ticker — INSIDE section ────────────────────────── -->
-  <div class="t-marquee-wrap" aria-hidden="true" style="margin-top:2.5rem;">
-    <div class="t-marquee-track">
-      {[...testimonials, ...testimonials].map((t) => (
-        <div class="t-mq-item">
-          <span class="t-mq-stars">{'★'.repeat(Math.max(1,Math.min(5,t.rating)))}</span>
-          <span class="t-mq-quote">"{t.quote}"</span>
-          <span class="t-mq-dot">✦</span>
-          <span class="t-mq-author">{t.client_name}{t.brand_name ? `, ${t.brand_name}` : ''}</span>
-        </div>
-      ))}
-    </div>
-  </div>
-
 </section>
 
 <!-- Fullscreen video modal -->
@@ -274,38 +260,6 @@ function initials(name: string) { return name.split(' ').map(n => n[0]).join('')
     cursor: pointer;
   }
   .t-brand-link:hover { color: #ff6633; }
-
-  /* ── Bottom quote ticker ──────────────────────────────────────────── */
-  .t-marquee-wrap {
-    overflow: hidden;
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
-    mask-image:         linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
-  }
-  .t-marquee-track {
-    display: flex;
-    width: max-content;
-    animation: tickerScroll 40s linear infinite;
-  }
-  .t-marquee-wrap:hover .t-marquee-track { animation-play-state: paused; }
-  @keyframes tickerScroll {
-    from { transform: translateX(0); }
-    to   { transform: translateX(-50%); }
-  }
-  .t-mq-item {
-    display: flex;
-    align-items: baseline;
-    gap: .5rem;
-    padding: .875rem 2rem;
-    border-right: 1px solid rgba(255,255,255,.08);
-    flex-shrink: 0;
-    white-space: nowrap;
-  }
-  .t-mq-stars  { color: #FFB800; font-size: .65rem; flex-shrink: 0; }
-  .t-mq-quote  { font-family: Inter,sans-serif; font-size: .75rem; color: rgba(255,255,255,.6);
-                 max-width: 260px; overflow: hidden; text-overflow: ellipsis; display: inline-block; }
-  .t-mq-author { font-family: 'Space Grotesk',sans-serif; font-size: .7rem; font-weight: 700;
-                 color: #FF3B00; flex-shrink: 0; }
-  .t-mq-dot    { color: rgba(255,255,255,.2); font-size: .5rem; flex-shrink: 0; }
 
   @keyframes modalIn { from { opacity:0; transform:scale(.96); } to { opacity:1; transform:scale(1); } }
 </style>

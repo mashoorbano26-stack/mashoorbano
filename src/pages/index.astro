@@ -35,15 +35,7 @@ const jsonLd = {
       jsonLd={jsonLd}
     />
   </head>
-  <body style="background:#F7F5F2; overflow-x:hidden; cursor:none;">
-
-    <!-- Custom cursor dot -->
-    <div id="g-dot" aria-hidden="true" style="
-      position:fixed; width:10px; height:10px; background:#FF3B00;
-      border-radius:50%; pointer-events:none; z-index:99999;
-      transform:translate(-50%,-50%); mix-blend-mode:multiply;
-      transition:width .15s, height .15s; left:-30px; top:-30px;">
-    </div>
+  <body style="background:#F7F5F2; overflow-x:hidden;">
 
     <Navbar />
 
@@ -60,16 +52,6 @@ const jsonLd = {
     <Footer />
 
     <script>
-      /* Cursor tracking */
-      const dot = document.getElementById('g-dot');
-      document.addEventListener('mousemove', (e) => {
-        if (dot) { dot.style.left = e.clientX + 'px'; dot.style.top = e.clientY + 'px'; }
-      });
-      document.querySelectorAll('a, button').forEach(el => {
-        el.addEventListener('mouseenter', () => { if (dot) { dot.style.width = '20px'; dot.style.height = '20px'; } });
-        el.addEventListener('mouseleave', () => { if (dot) { dot.style.width = '10px'; dot.style.height = '10px'; } });
-      });
-
       /* Scroll reveal */
       const io = new IntersectionObserver((entries) => {
         entries.forEach(e => {
