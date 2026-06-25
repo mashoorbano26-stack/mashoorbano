@@ -202,7 +202,14 @@ textarea{min-height:80px;resize:vertical}
           <div class="t-name">{t.client_name}</div>
           <div class="t-meta">
             {t.brand_url
-              ? <a href={t.brand_url} target="_blank" rel="noopener" style="color:#FF3B00;font-weight:700;text-decoration:underline;position:relative;z-index:10;pointer-events:all;cursor:pointer;" title={`Open ${t.brand_name} website`}>{t.brand_name} ↗</a>
+              ? <span
+                  role="link"
+                  tabindex={0}
+                  onclick={`event.stopPropagation();window.open('${t.brand_url}','_blank','noopener');`}
+                  onkeydown={`if(event.key==='Enter'){window.open('${t.brand_url}','_blank','noopener');}`}
+                  style="color:#FF3B00;font-weight:700;text-decoration:underline;cursor:pointer;display:inline;"
+                  title={`Open ${t.brand_name} website`}
+                >{t.brand_name} ↗</span>
               : t.brand_name
             }
             {' · '}{t.city} · ⭐{t.rating}
