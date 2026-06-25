@@ -112,8 +112,9 @@ textarea{min-height:80px;resize:vertical}
 .t-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.875rem}
 .t-meta{font-size:.75rem;color:#888;position:relative;}
 .t-actions{display:flex;flex-direction:column;gap:.4rem;align-items:flex-end}
-.blink{color:#FF3B00;font-weight:900;font-size:1rem;text-decoration:none;margin-left:2px;vertical-align:super;line-height:1;}
-.blink:hover{color:#e03200;}
+.t-brand-link{color:#FF3B00;font-weight:700;cursor:pointer;text-decoration:underline;}
+.t-brand-link:hover{color:#e03200;}
+
 
 /* ── Edit Modal ─────────────────────────────────────────── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:1rem}
@@ -203,8 +204,11 @@ textarea{min-height:80px;resize:vertical}
         <div>
           <div class="t-name">{t.client_name}</div>
           <div class="t-meta">
-            {t.brand_name}{t.brand_url ? <sup><a href={t.brand_url} target="_blank" rel="noopener noreferrer" class="blink">↗</a></sup> : null}
-            {' · '}{t.city} · ⭐{t.rating}
+            {t.brand_url
+              ? <span class="t-brand-link" data-href={t.brand_url} title={`Open ${t.brand_name} website`}>{t.brand_name} <span style="color:#FF3B00;font-size:.85em;">↗</span></span>
+              : <span>{t.brand_name}</span>
+            }
+            {t.city ? ` · ${t.city}` : ''} · ⭐{t.rating}
           </div>
           <div class="t-meta" style="margin-top:.2rem;font-style:italic;opacity:.8">"{t.quote?.slice(0,60)}…"</div>
         </div>
@@ -302,5 +306,15 @@ textarea{min-height:80px;resize:vertical}
   // Expose to inline onclick
   (window as any).openEditModal = openEditModal;
   (window as any).closeEditModal = closeEditModal;
+
+  // FEATURE 3: brand link — event delegation, no inline JS, no Astro encoding issues
+  document.addEventListener('click', function(e) {
+    const el = (e.target as HTMLElement).closest('.t-brand-link');
+    if (!el) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const href = (el as HTMLElement).dataset.href;
+    if (href) window.open(href, '_blank', 'noopener,noreferrer');
+  });
 </script>
 </body></html>
