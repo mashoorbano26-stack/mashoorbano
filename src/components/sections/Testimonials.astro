@@ -147,10 +147,26 @@ function initials(name: string) { return name.split(' ').map(n => n[0]).join('')
           transition:transform .45s cubic-bezier(.4,0,.2,1);
           will-change:transform;"
       >
-        {testimonials.map((t) => (
+        {testimonials.map((t) => {
+          // Detect video type for smart modal dispatch
+          const vurl  = t.video_url ?? '';
+          const isYT  = vurl.includes('youtube.com') || vurl.includes('youtu.be');
+          const isIG  = vurl.includes('instagram.com');
+          const isMp4 = !!vurl && !isYT && !isIG;
+          const vtype = isYT ? 'youtube' : isIG ? 'instagram' : isMp4 ? 'mp4' : 'none';
+          // YouTube thumbnail fallback
+          const ytIdMatch = vurl.match(/(?:v=|youtu\.be\/|\/embed\/|\/shorts\/)([a-zA-Z0-9_-]{11})/);
+          const ytId  = ytIdMatch ? ytIdMatch[1] : '';
+          const thumbSrc = t.photo_url
+            ? t.photo_url
+            : (isYT && ytId ? `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg` : null);
+          return (
           <div
             class="t-card"
             data-id={t.id}
+            data-vtype={vtype}
+            data-vurl={vurl}
+            data-ytid={ytId}
             style="flex-shrink:0;width:220px;position:relative;border-radius:18px;overflow:hidden;
               cursor:pointer;box-shadow:0 4px 24px rgba(0,0,0,.10);
               transition:transform .25s,box-shadow .25s;"
@@ -160,17 +176,10 @@ function initials(name: string) { return name.split(' ').map(n => n[0]).join('')
             <!-- 9:16 vertical aspect -->
             <div style="aspect-ratio:9/16;position:relative;background:#1a1a1a;overflow:hidden;">
 
-              <!-- Background: video or photo or gradient -->
-              {t.video_url ? (
-                <video
-                  src={t.video_url}
-                  style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"
-                  muted loop playsinline preload="none"
-                  class="t-video"
-                />
-              ) : t.photo_url ? (
+              <!-- FIX 1: Always show thumbnail (photo_url, or YT auto-thumb, or gradient) -->
+              {thumbSrc ? (
                 <img
-                  src={t.photo_url}
+                  src={thumbSrc}
                   alt={t.client_name}
                   style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;"
                   loading="lazy"
@@ -189,7 +198,8 @@ function initials(name: string) { return name.split(' ').map(n => n[0]).join('')
                 background:linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.3) 45%,rgba(0,0,0,0) 100%);
                 pointer-events:none;" aria-hidden="true"></div>
 
-              <!-- Play button (centre) -->
+              <!-- FIX 2: Play button only when video_url exists -->
+              {vtype !== 'none' && (
               <div
                 class="t-play"
                 style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
@@ -203,6 +213,7 @@ function initials(name: string) { return name.split(' ').map(n => n[0]).join('')
                   <polygon points="5,3 19,12 5,21"/>
                 </svg>
               </div>
+              )}
 
               <!-- Star rating -->
               <div style="position:absolute;top:.875rem;left:.875rem;
@@ -237,7 +248,8 @@ function initials(name: string) { return name.split(' ').map(n => n[0]).join('')
               </div>
             </div>
           </div>
-        ))}
+        );
+        })}
       </div>
     </div>
   </div>
@@ -245,19 +257,21 @@ function initials(name: string) { return name.split(' ').map(n => n[0]).join('')
   <!-- Dot indicators -->
   <div id="tDots" style="display:flex;justify-content:center;gap:.5rem;margin-top:1.5rem;padding:0 1rem;flex-wrap:wrap;"></div>
 
-  <!-- ── Marquee: feedback quotes scrolling right-to-left non-stop ── -->
-  <div class="t-marquee-wrap" aria-hidden="true">
-    <div class="t-marquee-track">
-      {[...testimonials, ...testimonials].map((t, i) => (
-        <div class="t-mq-item" key={`mq-${i}`}>
-          <span class="t-mq-stars">{'★'.repeat(Math.max(1,Math.min(5,t.rating)))}</span>
-          <span class="t-mq-quote">"{t.quote}"</span>
-          <span class="t-mq-author">— {t.client_name}{t.brand_name ? `, ${t.brand_name}` : ''}</span>
-        </div>
-      ))}
-    </div>
-  </div>
 </section>
+
+<!-- ── Marquee: OUTSIDE section so overflow:hidden doesn't clip it ── -->
+<div class="t-marquee-wrap" aria-hidden="true" style={`background:${sectionBg};padding:.5rem 0 2rem;`}>
+  <div class="t-marquee-track">
+    {[...testimonials, ...testimonials].map((t, i) => (
+      <div class="t-mq-item">
+        <span class="t-mq-stars">{'★'.repeat(Math.max(1,Math.min(5,t.rating)))}</span>
+        <span class="t-mq-quote">"{t.quote}"</span>
+        <span class="t-mq-dot">✦</span>
+        <span class="t-mq-author">{t.client_name}{t.brand_name ? `, ${t.brand_name}` : ''}</span>
+      </div>
+    ))}
+  </div>
+</div>
 
 <!-- Fullscreen video modal -->
 <div id="tModal"
@@ -266,9 +280,17 @@ function initials(name: string) { return name.split(' ').map(n => n[0]).join('')
     animation:modalIn .3s ease;"
   aria-modal="true" role="dialog" aria-label="Testimonial video">
   <div style="position:relative;width:min(360px,92vw);max-height:92vh;">
+    <!-- mp4 player -->
     <video id="tModalVid"
-      style="width:100%;border-radius:16px;display:block;max-height:88vh;object-fit:contain;"
+      style="width:100%;border-radius:16px;display:none;max-height:88vh;object-fit:contain;"
       controls playsinline></video>
+    <!-- YouTube embed (9:16) -->
+    <div id="tModalYT" style="display:none;width:100%;aspect-ratio:9/16;border-radius:16px;overflow:hidden;">
+      <iframe id="tModalYTFrame"
+        style="width:100%;height:100%;border:none;"
+        allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"
+        allowfullscreen></iframe>
+    </div>
     <button id="tModalClose"
       aria-label="Close"
       style="position:absolute;top:-44px;right:0;width:36px;height:36px;border-radius:50%;
@@ -341,17 +363,24 @@ function initials(name: string) { return name.split(' ').map(n => n[0]).join('')
     flex-shrink: 0;
     white-space: nowrap;
   }
+  .t-mq-dot {
+    color: rgba(255,255,255,.2);
+    font-size: .5rem;
+    flex-shrink: 0;
+  }
 </style>
 
-<script define:vars={{ speed, hasVideos: testimonials.some(t => t.video_url) }}>
+<script define:vars={{ speed }}>
 (function () {
   const track   = document.getElementById('tTrack');
   const prevBtn = document.getElementById('tPrev');
   const nextBtn = document.getElementById('tNext');
   const dotsEl  = document.getElementById('tDots');
-  const modal   = document.getElementById('tModal');
-  const modalVid= document.getElementById('tModalVid');
-  const mClose  = document.getElementById('tModalClose');
+  const modal      = document.getElementById('tModal');
+  const modalVid   = document.getElementById('tModalVid');
+  const modalYT    = document.getElementById('tModalYT');
+  const ytFrame    = document.getElementById('tModalYTFrame');
+  const mClose     = document.getElementById('tModalClose');
 
   if (!track) return;
 
@@ -405,27 +434,45 @@ function initials(name: string) { return name.split(' ').map(n => n[0]).join('')
   track.addEventListener('mouseenter', clearAuto);
   track.addEventListener('mouseleave', startAuto);
 
-  // Card click — open modal if video, else show detail
-  cards.forEach((card, i) => {
-    card.addEventListener('click', () => {
-      const vid = card.querySelector('.t-video');
-      if (vid && vid.src && modal && modalVid) {
-        modalVid.src = vid.src;
-        modal.style.display = 'flex';
-        modalVid.play();
-      }
-      goTo(i);
-    });
-  });
-
-  // Close modal
+  // Close modal helper
   function closeModal() {
-    if (modal) modal.style.display = 'none';
-    if (modalVid) { modalVid.pause(); modalVid.src = ''; }
+    if (modal)    modal.style.display = 'none';
+    if (modalVid) { modalVid.pause(); modalVid.src = ''; modalVid.style.display = 'none'; }
+    if (ytFrame)  { ytFrame.src = ''; }
+    if (modalYT)  { modalYT.style.display = 'none'; }
   }
   mClose?.addEventListener('click', closeModal);
   modal?.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+  // Card click — FIX 2: smart video dispatch (mp4 / YouTube / Instagram)
+  cards.forEach((card, i) => {
+    card.addEventListener('click', () => {
+      const vtype = card.dataset.vtype;
+      const vurl  = card.dataset.vurl;
+      const ytid  = card.dataset.ytid;
+
+      if (vtype === 'mp4' && vurl && modal && modalVid) {
+        closeModal();
+        modalVid.src = vurl;
+        modalVid.style.display = 'block';
+        modal.style.display = 'flex';
+        modalVid.play().catch(() => {});
+
+      } else if (vtype === 'youtube' && ytid && modal && ytFrame && modalYT) {
+        closeModal();
+        ytFrame.src = `https://www.youtube-nocookie.com/embed/${ytid}?autoplay=1&rel=0&playsinline=1`;
+        modalYT.style.display = 'block';
+        modal.style.display = 'flex';
+
+      } else if (vtype === 'instagram' && vurl) {
+        window.open(vurl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+
+      goTo(i);
+    });
+  });
 
   // Init
   goTo(0);
