@@ -203,10 +203,12 @@ textarea{min-height:80px;resize:vertical}
           <div class="t-meta">
             {t.brand_url
               ? <a
-                  class="brand-link"
-                  data-url={t.brand_url}
-                  style="color:#FF3B00;font-weight:700;text-decoration:underline;cursor:pointer;display:inline;"
+                  href={t.brand_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style="color:#FF3B00;font-weight:700;text-decoration:underline;cursor:pointer;"
                   title={`Open ${t.brand_name} website`}
+                  onclick="event.stopPropagation()"
                 >{t.brand_name} ↗</a>
               : t.brand_name
             }
@@ -303,16 +305,6 @@ textarea{min-height:80px;resize:vertical}
   /* ESC key closes modal */
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeEditModal();
-  });
-
-  // Brand website links — use event delegation to avoid Astro HTML-escaping onclick
-  document.addEventListener('click', function(e) {
-    const el = (e.target as HTMLElement).closest('.brand-link');
-    if (!el) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const url = (el as HTMLElement).dataset.url;
-    if (url) window.open(url, '_blank', 'noopener,noreferrer');
   });
 
   // Expose to inline onclick
